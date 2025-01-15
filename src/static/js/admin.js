@@ -5,43 +5,16 @@ let ADMIN_TOKEN = localStorage.getItem('adminToken');
 // 存储所有密钥的数组
 let allKeys = [];
 
+// 当前选中的筛选器
+let currentFilter = 'active';
+
 // Initialize the application
 function initializeApp() {
     // Get DOM elements
-    const elements = {
-        authDialog: document.getElementById('authDialog'),
-        adminTokenInput: document.getElementById('adminToken'),
-        confirmAuthBtn: document.getElementById('confirmAuth'),
-        mainContent: document.getElementById('mainContent'),
-        createKeyBtn: document.getElementById('createKeyBtn'),
-        createKeyDialog: document.getElementById('createKeyDialog'),
-        keyCreatedDialog: document.getElementById('keyCreatedDialog'),
-        validityDaysInput: document.getElementById('validityDays'),
-        keyNoteInput: document.getElementById('keyNote'),
-        createdKeyDisplay: document.getElementById('createdKeyDisplay'),
-        keyValidityDisplay: document.getElementById('keyValidityDisplay'),
-        searchInput: document.getElementById('searchInput'),
-        keysList: document.querySelector('.keys-list'),
-        keysListContent: document.querySelector('.keys-list-content'),
-        tabButtons: document.querySelectorAll('.tab-button'),
-        tabContents: document.querySelectorAll('.tab-content'),
-        cancelCreateKey: document.getElementById('cancelCreateKey'),
-        confirmCreateKey: document.getElementById('confirmCreateKey'),
-        copyKeyBtn: document.getElementById('copyKeyBtn'),
-        closeKeyDialog: document.getElementById('closeKeyDialog'),
-        // 消息对话框元素
-        messageDialog: document.getElementById('messageDialog'),
-        messageText: document.getElementById('messageText'),
-        confirmMessage: document.getElementById('confirmMessage'),
-        // 确认对话框元素
-        confirmDialog: document.getElementById('confirmDialog'),
-        confirmText: document.getElementById('confirmText'),
-        confirmConfirm: document.getElementById('confirmConfirm'),
-        cancelConfirm: document.getElementById('cancelConfirm')
-    };
+    const elements = getElements();
 
     // Auth related events
-    elements.confirmAuthBtn?.addEventListener('click', () => authenticate(elements));
+    elements.authDialog?.addEventListener('click', () => authenticate(elements));
     elements.adminTokenInput?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') authenticate(elements);
     });
@@ -74,6 +47,22 @@ function initializeApp() {
         button?.addEventListener('click', () => switchTab(button.dataset.tab));
     });
 
+    // 筛选按钮事件
+    elements.filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // 更新按钮状态
+            elements.filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // 更新当前筛选器
+            currentFilter = button.dataset.filter;
+            
+            // 重新渲染列表
+            const filteredKeys = filterAndSearchKeys(allKeys, elements.searchInput.value);
+            renderKeysList(filteredKeys, elements);
+        });
+    });
+
     // Check authentication on load
     if (!ADMIN_TOKEN) {
         showAuthDialog(elements);
@@ -83,6 +72,51 @@ function initializeApp() {
 
     // Return elements for use in other functions
     return elements;
+}
+
+function getElements() {
+    return {
+        // Auth related elements
+        authDialog: document.getElementById('authDialog'),
+        adminTokenInput: document.getElementById('adminToken'),
+        confirmAuthBtn: document.getElementById('confirmAuth'),
+        mainContent: document.getElementById('mainContent'),
+        
+        // Create key dialog elements
+        createKeyBtn: document.getElementById('createKeyBtn'),
+        createKeyDialog: document.getElementById('createKeyDialog'),
+        validityDaysInput: document.getElementById('validityDays'),
+        keyNoteInput: document.getElementById('keyNote'),
+        confirmCreateKey: document.getElementById('confirmCreateKey'),
+        cancelCreateKey: document.getElementById('cancelCreateKey'),
+        
+        // Key created dialog elements
+        keyCreatedDialog: document.getElementById('keyCreatedDialog'),
+        createdKeyDisplay: document.getElementById('createdKeyDisplay'),
+        keyValidityDisplay: document.getElementById('keyValidityDisplay'),
+        copyKeyBtn: document.getElementById('copyKeyBtn'),
+        closeKeyDialog: document.getElementById('closeKeyDialog'),
+        
+        // Message dialog elements
+        messageDialog: document.getElementById('messageDialog'),
+        messageText: document.getElementById('messageText'),
+        confirmMessage: document.getElementById('confirmMessage'),
+        
+        // Confirm dialog elements
+        confirmDialog: document.getElementById('confirmDialog'),
+        confirmText: document.getElementById('confirmText'),
+        confirmConfirm: document.getElementById('confirmConfirm'),
+        cancelConfirm: document.getElementById('cancelConfirm'),
+        
+        // Search and list elements
+        searchInput: document.getElementById('searchInput'),
+        keysListContent: document.querySelector('.keys-list-content'),
+        filterButtons: document.querySelectorAll('.filter-button'),
+        
+        // Tab elements
+        tabButtons: document.querySelectorAll('.tab-button'),
+        tabContents: document.querySelectorAll('.tab-content')
+    };
 }
 
 // 显示消息对话框
@@ -234,7 +268,8 @@ async function loadKeys(elements) {
 
         const data = await response.json();
         allKeys = data.keys; // 保存所有密钥
-        renderKeysList(allKeys, elements);
+        const filteredKeys = filterAndSearchKeys(allKeys, elements.searchInput.value);
+        renderKeysList(filteredKeys, elements);
     } catch (error) {
         console.error('加载密钥错误:', error);
         showMessageDialog(elements, '加载密钥失败，请重试', 'error');
@@ -258,10 +293,51 @@ function formatDate(timestamp) {
     return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
 }
 
+// 获取密钥来源的显示文本
+function getSourceText(source) {
+    const sourceMap = {
+        'admin_manual': '管理员创建',
+        'admin_api': 'API创建',
+        'code_exchange': '激活码兑换'
+    };
+    return sourceMap[source] || '未知来源';
+}
+
+// 筛选和搜索密钥
+function filterAndSearchKeys(keys, searchQuery) {
+    // 先按状态筛选
+    let filteredKeys = keys;
+    if (currentFilter !== 'all') {
+        const isActive = currentFilter === 'active';
+        filteredKeys = keys.filter(key => isKeyValid(key) === isActive);
+    }
+    
+    // 再按搜索词筛选
+    if (searchQuery) {
+        searchQuery = searchQuery.toLowerCase().trim();
+        filteredKeys = filteredKeys.filter(key => {
+            const searchFields = [
+                key.key,
+                key.info.note,
+                formatDate(key.info.createdAt),
+                formatDate(key.info.expiresAt),
+                isKeyValid(key) ? '有效' : '已失效',
+                getSourceText(key.info.source)
+            ];
+            return searchFields.some(field => 
+                field && field.toString().toLowerCase().includes(searchQuery)
+            );
+        });
+    }
+    
+    return filteredKeys;
+}
+
 function renderKeysList(keys, elements) {
     let html = '';
     keys.forEach(key => {
         const status = isKeyValid(key) ? '有效' : '已失效';
+        const sourceText = getSourceText(key.info.source);
         html += `
         <div class="key-item" data-key="${key.key}">
             <div class="key-info">
@@ -269,11 +345,12 @@ function renderKeysList(keys, elements) {
                 <div><strong>创建时间：</strong> ${formatDate(key.info.createdAt)}</div>
                 <div><strong>过期时间：</strong> ${formatDate(key.info.expiresAt)}</div>
                 <div><strong>状态：</strong> ${status}</div>
+                <div><strong>来源：</strong> ${sourceText}</div>
                 ${key.info.note ? `<div><strong>备注：</strong> ${key.info.note}</div>` : ''}
             </div>
             <div class="key-actions">
                 <button class="secondary-button copy-key" data-key="${key.key}">复制</button>
-                <button class="secondary-button delete-key" data-key="${key.key}">删除</button>
+                <button class="secondary-button delete-key" data-key="${key.key}">停用</button>
             </div>
         </div>
     `;
@@ -286,29 +363,36 @@ function renderKeysList(keys, elements) {
     });
 
     elements.keysListContent.querySelectorAll('.delete-key').forEach(button => {
-        button.addEventListener('click', () => deleteKey(button.dataset.key, elements));
+        button.addEventListener('click', () => deactivateKey(button.dataset.key, elements));
     });
 }
 
-async function deleteKey(key, elements) {
-    showConfirmDialog(elements, '确定要删除此密钥吗？', async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/admin/keys/${key}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${ADMIN_TOKEN}`
-                }
-            });
+async function deactivateKey(key, elements) {
+    if (!confirm('确定要停用此密钥吗？停用后将无法恢复。')) {
+        return;
+    }
 
-            if (!response.ok) throw new Error('删除密钥失败');
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/keys/${key}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${ADMIN_TOKEN}`
+            }
+        });
 
-            loadKeys(elements); // Refresh the keys list
-            showMessageDialog(elements, '密钥已成功删除', 'success');
-        } catch (error) {
-            console.error('删除密钥错误:', error);
-            showMessageDialog(elements, '删除密钥失败，请重试', 'error');
+        if (!response.ok) throw new Error('停用密钥失败');
+
+        const data = await response.json();
+        if (data.success) {
+            showMessageDialog(elements, '密钥已停用', 'success');
+            loadKeys(elements);
+        } else {
+            showMessageDialog(elements, '停用密钥失败：' + data.message, 'error');
         }
-    });
+    } catch (error) {
+        console.error('停用密钥错误:', error);
+        showMessageDialog(elements, '停用密钥失败，请重试', 'error');
+    }
 }
 
 // 复制文本到剪贴板
@@ -381,25 +465,6 @@ function switchTab(tabId) {
     });
 }
 
-// 搜索密钥
-function searchKeys(query, keys) {
-    query = query.toLowerCase().trim();
-    if (!query) return keys;
-
-    return keys.filter(key => {
-        const searchFields = [
-            key.key,
-            key.info.note,
-            formatDate(key.info.createdAt),
-            formatDate(key.info.expiresAt),
-            key.info.active ? '有效' : '已失效'
-        ];
-        return searchFields.some(field => 
-            field && field.toString().toLowerCase().includes(query)
-        );
-    });
-}
-
 // 初始化搜索功能
 function initSearch(elements) {
     const searchInput = elements.searchInput;
@@ -409,7 +474,7 @@ function initSearch(elements) {
     searchInput.addEventListener('input', () => {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
-            const filteredKeys = searchKeys(searchInput.value, allKeys);
+            const filteredKeys = filterAndSearchKeys(allKeys, searchInput.value);
             renderKeysList(filteredKeys, elements);
         }, 300);
     });
@@ -418,7 +483,7 @@ function initSearch(elements) {
     searchInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
-            const filteredKeys = searchKeys(searchInput.value, allKeys);
+            const filteredKeys = filterAndSearchKeys(allKeys, searchInput.value);
             renderKeysList(filteredKeys, elements);
         }
     });

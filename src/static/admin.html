@@ -34,13 +34,18 @@
             <div class="header">
                 <button class="primary-button" id="createKeyBtn">创建新密钥</button>
             </div>
-            <div class="search">
-                <input type="text" id="searchInput" placeholder="搜索密钥...">
-            </div>
             <div class="keys-list">
-                <div class="keys-list-content">
-                    <!-- 密钥列表将通过 JavaScript 动态生成 -->
+                <div class="search">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="searchInput" placeholder="搜索密钥...">
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="filter-button active" data-filter="active">有效</button>
+                        <button class="filter-button" data-filter="inactive">已失效</button>
+                        <button class="filter-button" data-filter="all">全部</button>
+                    </div>
                 </div>
+                <div class="keys-list-content" id="keysListContent"></div>
             </div>
         </div>
 
