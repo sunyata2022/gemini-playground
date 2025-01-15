@@ -583,6 +583,22 @@ function initSearch(elements) {
             renderKeysList(filteredKeys, elements);
         }
     });
+
+    // 添加筛选按钮的点击事件处理
+    const filterButtons = document.querySelectorAll('.filter-button');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // 移除所有按钮的 active 类
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            // 给当前点击的按钮添加 active 类
+            button.classList.add('active');
+            // 更新当前筛选器
+            currentFilter = button.dataset.filter;
+            // 重新筛选并渲染列表
+            const filteredKeys = filterAndSearchKeys(allKeys, searchInput.value);
+            renderKeysList(filteredKeys, elements);
+        });
+    });
 }
 
 // Initialize when DOM is loaded
