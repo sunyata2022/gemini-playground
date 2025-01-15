@@ -111,10 +111,13 @@ async function handleAPIRequest(req: Request): Promise<Response> {
   try {
     console.log('API request received:', req.url);
     
-    // 从请求头中获取 API Key
+    // 从请求头或 query string 中获取 API Key
+    const url = new URL(req.url);
+    const queryKey = url.searchParams.get("key");
     const authHeader = req.headers.get("Authorization");
-    const apiKey = authHeader?.replace("Bearer ", "");
-    console.log('Authorization header present:', !!authHeader);
+    const headerKey = authHeader?.replace("Bearer ", "");
+    const apiKey = queryKey || headerKey;
+    console.log('API Key present:', !!apiKey);
 
     // 验证 API Key
     const validation = await validateAndGetSystemKey(apiKey);
