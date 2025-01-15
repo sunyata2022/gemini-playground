@@ -27,31 +27,26 @@
     <div class="container" id="mainContent" style="display: none;">
         <div class="tabs">
             <button class="tab-button active" data-tab="keys">API 密钥</button>
-            <button class="tab-button" data-tab="tab2">Tab 2</button>
-            <button class="tab-button" data-tab="tab3">Tab 3</button>
+            <button class="tab-button" data-tab="settings">设置</button>
         </div>
 
         <div class="tab-content active" id="keys">
             <div class="header">
-                <h2>API 密钥管理</h2>
-                <button id="createKeyBtn" class="primary-button">创建新密钥</button>
+                <button class="primary-button" id="createKeyBtn">创建新密钥</button>
             </div>
-
-            <div class="search-box">
+            <div class="search">
                 <input type="text" id="searchInput" placeholder="搜索密钥...">
             </div>
-
             <div class="keys-list">
-                <!-- 密钥列表将通过 JavaScript 动态生成 -->
+                <div class="keys-list-content">
+                    <!-- 密钥列表将通过 JavaScript 动态生成 -->
+                </div>
             </div>
         </div>
 
-        <div class="tab-content" id="tab2">
-            <h2>Tab 2 内容</h2>
-        </div>
-
-        <div class="tab-content" id="tab3">
-            <h2>Tab 3 内容</h2>
+        <div class="tab-content" id="settings">
+            <h3>设置</h3>
+            <p>更多设置选项即将推出...</p>
         </div>
     </div>
 
@@ -66,7 +61,7 @@
                 </div>
                 <div class="form-group">
                     <label for="keyNote">备注</label>
-                    <input type="text" id="keyNote" placeholder="请输入密钥备注">
+                    <input type="text" id="keyNote" placeholder="记录密钥用途、使用者等信息，方便后续管理">
                 </div>
                 <div class="dialog-buttons">
                     <button class="secondary-button" id="cancelCreateKey">取消</button>
@@ -82,18 +77,46 @@
             <div class="dialog-content">
                 <h3>密钥创建成功</h3>
                 <div class="key-info">
-                    <p>您的密钥：</p>
-                    <code id="createdKeyDisplay"></code>
-                    <p>有效期：<span id="keyValidityDisplay"></span></p>
+                    <p><strong>密钥：</strong><span id="createdKeyDisplay"></span></p>
+                    <p><strong>有效期：</strong><span id="keyValidityDisplay"></span></p>
                 </div>
                 <div class="dialog-buttons">
-                    <button class="primary-button" id="copyKeyBtn">复制密钥信息</button>
-                    <button class="secondary-button" id="closeKeyDialog">关闭</button>
+                    <button class="secondary-button" id="copyKeyBtn">复制</button>
+                    <button class="primary-button" id="closeKeyDialog">关闭</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="js/admin.js" type="module"></script>
+    <!-- 消息提示对话框 -->
+    <div class="dialog-overlay" id="messageDialog">
+        <div class="dialog">
+            <div class="dialog-content">
+                <div class="message-content">
+                    <p id="messageText"></p>
+                </div>
+                <div class="dialog-buttons">
+                    <button class="primary-button" id="confirmMessage">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <div class="dialog-overlay" id="confirmDialog">
+        <div class="dialog">
+            <div class="dialog-content">
+                <div class="message-content">
+                    <p id="confirmText"></p>
+                </div>
+                <div class="dialog-buttons">
+                    <button class="secondary-button" id="cancelConfirm">取消</button>
+                    <button class="primary-button" id="confirmConfirm">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
 </body>
 </html>
