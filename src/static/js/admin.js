@@ -63,6 +63,10 @@ function initializeApp() {
         });
     });
 
+    // 编辑备注对话框事件
+    elements.confirmEditNote?.addEventListener('click', () => updateKeyNote(elements));
+    elements.cancelEditNote?.addEventListener('click', () => hideEditNoteDialog(elements));
+
     // Check authentication on load
     if (!ADMIN_TOKEN) {
         showAuthDialog(elements);
@@ -115,7 +119,13 @@ function getElements() {
         
         // Tab elements
         tabButtons: document.querySelectorAll('.tab-button'),
-        tabContents: document.querySelectorAll('.tab-content')
+        tabContents: document.querySelectorAll('.tab-content'),
+        
+        // 编辑备注对话框元素
+        editNoteDialog: document.getElementById('editNoteDialog'),
+        editNoteInput: document.getElementById('editNoteInput'),
+        confirmEditNote: document.getElementById('confirmEditNote'),
+        cancelEditNote: document.getElementById('cancelEditNote'),
     };
 }
 
@@ -333,24 +343,81 @@ function filterAndSearchKeys(keys, searchQuery) {
     return filteredKeys;
 }
 
+// 显示编辑备注对话框
+function showEditNoteDialog(elements, key) {
+    const dialog = elements.editNoteDialog;
+    const input = elements.editNoteInput;
+    
+    // 设置当前密钥的备注
+    const keyData = allKeys.find(k => k.key === key);
+    input.value = keyData?.info.note || '';
+    
+    // 存储当前编辑的密钥
+    dialog.dataset.key = key;
+    
+    dialog.style.display = 'flex';
+}
+
+// 隐藏编辑备注对话框
+function hideEditNoteDialog(elements) {
+    elements.editNoteDialog.style.display = 'none';
+    elements.editNoteInput.value = '';
+}
+
+// 更新密钥备注
+async function updateKeyNote(elements) {
+    const dialog = elements.editNoteDialog;
+    const key = dialog.dataset.key;
+    const note = elements.editNoteInput.value.trim();
+    
+    try {
+        const response = await fetch(`/admin/keys/${key}/note`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': localStorage.getItem('adminToken')
+            },
+            body: JSON.stringify({ note })
+        });
+
+        if (!response.ok) throw new Error('更新备注失败');
+
+        const data = await response.json();
+        if (data.success) {
+            hideEditNoteDialog(elements);
+            showMessageDialog(elements, '备注已更新', 'success');
+            loadKeys(elements);
+        } else {
+            showMessageDialog(elements, '更新备注失败：' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('更新备注错误:', error);
+        showMessageDialog(elements, '更新备注失败，请重试', 'error');
+    }
+}
+
 function renderKeysList(keys, elements) {
     let html = '';
     keys.forEach(key => {
-        const status = isKeyValid(key) ? '有效' : '已失效';
+        const isValid = isKeyValid(key);
         const sourceText = getSourceText(key.info.source);
         html += `
         <div class="key-item" data-key="${key.key}">
-            <div class="key-info">
-                <div><strong>密钥：</strong> ${key.key}</div>
-                <div><strong>创建时间：</strong> ${formatDate(key.info.createdAt)}</div>
-                <div><strong>过期时间：</strong> ${formatDate(key.info.expiresAt)}</div>
-                <div><strong>状态：</strong> ${status}</div>
-                <div><strong>来源：</strong> ${sourceText}</div>
-                ${key.info.note ? `<div><strong>备注：</strong> ${key.info.note}</div>` : ''}
+            <div class="key-main">
+                <div class="key-info">
+                    <div class="key-text"><strong>密钥：</strong><span class="${isValid ? 'valid-key' : 'invalid-key'}">${key.key}</span></div>
+                    <div class="key-text"><strong>来源：</strong>${sourceText}</div>
+                    <div class="key-text"><strong>创建：</strong>${formatDate(key.info.createdAt)}</div>
+                    <div class="key-text"><strong>过期：</strong>${formatDate(key.info.expiresAt)}</div>
+                </div>
+                <div class="key-note">
+                    <strong>备注：</strong>${key.info.note || '无'}
+                </div>
             </div>
             <div class="key-actions">
-                <button class="secondary-button copy-key" data-key="${key.key}">复制</button>
-                <button class="secondary-button delete-key" data-key="${key.key}">停用</button>
+                <button class="action-button edit-note" title="编辑备注" data-key="${key.key}">编辑</button>
+                <button class="action-button copy-key" title="复制密钥" data-key="${key.key}">复制</button>
+                <button class="action-button delete-key" title="停用密钥" data-key="${key.key}">停用</button>
             </div>
         </div>
     `;
@@ -364,6 +431,10 @@ function renderKeysList(keys, elements) {
 
     elements.keysListContent.querySelectorAll('.delete-key').forEach(button => {
         button.addEventListener('click', () => deactivateKey(button.dataset.key, elements));
+    });
+
+    elements.keysListContent.querySelectorAll('.edit-note').forEach(button => {
+        button.addEventListener('click', () => showEditNoteDialog(elements, button.dataset.key));
     });
 }
 
