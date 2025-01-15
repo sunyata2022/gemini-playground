@@ -189,6 +189,31 @@ async function handleKeyManagement(req: Request): Promise<Response> {
   });
 }
 
+async function handleStaticFile(pathname: string): Promise<Response> {
+  try {
+    // 如果请求的是根路径，返回 index.html
+    if (pathname === '/') {
+      pathname = '/index.html';
+    }
+    
+    // 如果请求的是 /admin，返回 admin.html
+    if (pathname === '/admin') {
+      pathname = '/admin.html';
+    }
+
+    const filePath = `./src/static${pathname}`;
+    const fileContent = await Deno.readFile(filePath);
+    return new Response(fileContent, {
+      headers: {
+        'content-type': getContentType(pathname),
+      },
+    });
+  } catch (error) {
+    console.error('Static file error:', error);
+    return new Response('Not Found', { status: 404 });
+  }
+}
+
 async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
   console.log('Request URL:', req.url);
@@ -203,6 +228,7 @@ async function handleRequest(req: Request): Promise<Response> {
     return handleWebSocket(req);
   }
 
+  // API 请求处理
   if (url.pathname.endsWith("/chat/completions") ||
       url.pathname.endsWith("/embeddings") ||
       url.pathname.endsWith("/models")) {
@@ -210,31 +236,7 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   // 静态文件处理
-  try {
-    let filePath = url.pathname;
-    if (filePath === '/' || filePath === '/index.html') {
-      filePath = '/index.html';
-    }
-
-    const fullPath = `${Deno.cwd()}/src/static${filePath}`;
-
-    const file = await Deno.readFile(fullPath);
-    const contentType = getContentType(filePath);
-
-    return new Response(file, {
-      headers: {
-        'content-type': `${contentType};charset=UTF-8`,
-      },
-    });
-  } catch (e) {
-    console.error('Error details:', e);
-    return new Response('Not Found', { 
-      status: 404,
-      headers: {
-        'content-type': 'text/plain;charset=UTF-8',
-      }
-    });
-  }
+  return handleStaticFile(url.pathname);
 }
 
 Deno.serve(handleRequest); 

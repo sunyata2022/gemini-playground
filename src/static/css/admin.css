@@ -1,0 +1,246 @@
+/* General Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    box-sizing: border-box;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Tabs */
+.tabs {
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin-right: 10px;
+}
+
+.tab-button.active {
+    border-bottom: 2px solid #1a73e8;
+    color: #1a73e8;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* Buttons */
+.primary-button {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.primary-button:hover {
+    background-color: #1557b0;
+}
+
+.secondary-button {
+    background-color: #f1f3f4;
+    color: #3c4043;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.secondary-button:hover {
+    background-color: #e8eaed;
+}
+
+/* Search Box */
+.search-box {
+    margin-bottom: 20px;
+}
+
+.search-box input {
+    width: calc(100% - 24px); /* 减去内边距的宽度 */
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+/* Keys List */
+.keys-list {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.key-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.key-item:last-child {
+    border-bottom: none;
+}
+
+.key-info {
+    flex-grow: 1;
+}
+
+.key-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Dialog */
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.dialog-overlay.active {
+    display: flex;
+}
+
+.dialog {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    margin: 20px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.dialog-content {
+    padding: 24px;
+}
+
+.dialog h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+/* Form */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: calc(100% - 24px); /* 减去内边距的宽度 */
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+/* Dialog Buttons */
+.dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+/* Key Display */
+.key-info code {
+    display: block;
+    padding: 10px;
+    background-color: #f1f3f4;
+    border-radius: 4px;
+    margin: 10px 0;
+    word-break: break-all;
+    font-family: monospace;
+}
+
+/* Animation */
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 消息对话框样式 */
+.message-content {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.message-content p {
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+/* 成功消息 */
+.message-success {
+    color: var(--success-color);
+}
+
+/* 错误消息 */
+.message-error {
+    color: var(--error-color);
+}
+
+/* 警告消息 */
+.message-warning {
+    color: var(--warning-color);
+}
