@@ -41,6 +41,20 @@ async function validateAndGetSystemKey(apiKey: string | null): Promise<{ isValid
   return { isValid: true };
 }
 
+function addCorsHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set("Access-Control-Allow-Origin", "*");
+  headers.set("Access-Control-Allow-Methods", "*");
+  headers.set("Access-Control-Allow-Headers", "*");
+  headers.set("Access-Control-Allow-Credentials", "true");
+  
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 async function handleWebSocket(req: Request): Promise<Response> {
   // 从 URL 参数中获取 API Key
   const url = new URL(req.url);
@@ -51,7 +65,7 @@ async function handleWebSocket(req: Request): Promise<Response> {
   const validation = await validateAndGetSystemKey(apiKey);
   if (!validation.isValid) {
     console.log('WebSocket connection rejected:', validation.error);
-    return new Response(validation.error, { status: 401 });
+    return addCorsHeaders(new Response(validation.error, { status: 401 }));
   }
   
   // 使用系统 Key 创建新的目标 URL
@@ -104,10 +118,22 @@ async function handleWebSocket(req: Request): Promise<Response> {
     console.error('Gemini WebSocket error:', error);
   };
 
-  return response;
+  return addCorsHeaders(response);
 }
 
 async function handleAPIRequest(req: Request): Promise<Response> {
+  // 处理 OPTIONS 请求
+  if (req.method === "OPTIONS") {
+    return addCorsHeaders(new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Credentials": "true",
+      }
+    }));
+  }
+
   try {
     console.log('API request received:', req.url);
     
@@ -123,7 +149,7 @@ async function handleAPIRequest(req: Request): Promise<Response> {
     const validation = await validateAndGetSystemKey(apiKey);
     if (!validation.isValid) {
       console.log('API request rejected:', validation.error);
-      return new Response(validation.error, { status: 401 });
+      return addCorsHeaders(new Response(validation.error, { status: 401 }));
     }
 
     // 替换请求头中的 API Key 为系统 Key
@@ -139,17 +165,18 @@ async function handleAPIRequest(req: Request): Promise<Response> {
     console.log('Modified request created, forwarding to worker');
 
     const worker = await import('./api_proxy/worker.mjs');
-    return await worker.default.fetch(modifiedReq);
+    const response = await worker.default.fetch(modifiedReq);
+    return addCorsHeaders(response);
   } catch (error) {
     console.error('API request error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     const errorStatus = (error as { status?: number }).status || 500;
-    return new Response(errorMessage, {
+    return addCorsHeaders(new Response(errorMessage, {
       status: errorStatus,
       headers: {
         'content-type': 'text/plain;charset=UTF-8',
       }
-    });
+    }));
   }
 }
 
@@ -159,40 +186,40 @@ async function handleKeyManagement(req: Request): Promise<Response> {
   
   // 验证管理接口的 token
   if (!validateAdminToken(req.headers.get("Authorization"))) {
-    return new Response("Unauthorized", { 
+    return addCorsHeaders(new Response("Unauthorized", { 
       status: 401,
       headers: {
         "content-type": "application/json"
       }
-    });
+    }));
   }
 
   if (req.method === "POST" && url.pathname === "/admin/keys") {
     try {
       const { validityDays, note } = await req.json();
       if (!validityDays || typeof validityDays !== 'number' || validityDays <= 0) {
-        return new Response(JSON.stringify({ 
+        return addCorsHeaders(new Response(JSON.stringify({ 
           error: "Invalid validityDays parameter" 
         }), {
           status: 400,
           headers: { "content-type": "application/json" }
-        });
+        }));
       }
 
       const newKey = await keyManager.createKey(validityDays, KeySource.ADMIN_MANUAL, note);
-      return new Response(JSON.stringify({ 
+      return addCorsHeaders(new Response(JSON.stringify({ 
         key: newKey,
         expiresIn: `${validityDays} days`
       }), {
         headers: { "content-type": "application/json" }
-      });
+      }));
     } catch (error) {
-      return new Response(JSON.stringify({ 
+      return addCorsHeaders(new Response(JSON.stringify({ 
         error: "Invalid request body" 
       }), {
         status: 400,
         headers: { "content-type": "application/json" }
-      });
+      }));
     }
   }
 
@@ -202,39 +229,39 @@ async function handleKeyManagement(req: Request): Promise<Response> {
       const { note, expiryDays, active } = await req.json();
       
       const success = await keyManager.updateKey(key, { note, expiryDays, active });
-      return new Response(JSON.stringify({ 
+      return addCorsHeaders(new Response(JSON.stringify({ 
         success,
         message: success ? "Key updated successfully" : "Key not found"
       }), {
         status: success ? 200 : 404,
         headers: { "content-type": "application/json" }
-      });
+      }));
     } catch (error) {
-      return new Response(JSON.stringify({ 
+      return addCorsHeaders(new Response(JSON.stringify({ 
         error: "Invalid request body" 
       }), {
         status: 400,
         headers: { "content-type": "application/json" }
-      });
+      }));
     }
   }
 
   if (req.method === "GET" && url.pathname === "/admin/keys") {
     const keys = await keyManager.listKeys();
-    return new Response(JSON.stringify({
+    return addCorsHeaders(new Response(JSON.stringify({
       total: keys.length,
       keys: keys
     }), {
       headers: { "content-type": "application/json" }
-    });
+    }));
   }
 
-  return new Response(JSON.stringify({ 
+  return addCorsHeaders(new Response(JSON.stringify({ 
     error: "Not Found" 
   }), { 
     status: 404,
     headers: { "content-type": "application/json" }
-  });
+  }));
 }
 
 async function handleStaticFile(pathname: string): Promise<Response> {
@@ -251,14 +278,14 @@ async function handleStaticFile(pathname: string): Promise<Response> {
 
     const filePath = `./src/static${pathname}`;
     const fileContent = await Deno.readFile(filePath);
-    return new Response(fileContent, {
+    return addCorsHeaders(new Response(fileContent, {
       headers: {
         'content-type': getContentType(pathname),
       },
-    });
+    }));
   } catch (error) {
     console.error('Static file error:', error);
-    return new Response('Not Found', { status: 404 });
+    return addCorsHeaders(new Response('Not Found', { status: 404 }));
   }
 }
 
