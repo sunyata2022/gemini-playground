@@ -38,6 +38,7 @@
     width: 50px;  /* 标签固定宽度 */
 }
 
+/* 密钥状态样式 */
 .valid-key {
     color: var(--success-color);
     font-weight: 500;
@@ -47,6 +48,16 @@
     color: var(--error-color);
     font-weight: 500;
     text-decoration: line-through;
+}
+
+.status-text {
+    color: var(--error-color);
+    margin-left: 8px;
+    font-size: 0.9em;
+}
+
+.key-text span + span {
+    margin-left: 8px;
 }
 
 .key-note {
@@ -279,18 +290,18 @@ body {
     padding: 16px;
 }
 
-/* Dialog */
+/* 对话框样式 */
 .dialog-overlay {
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
+    width: 100%;
+    height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    display: none;
+    z-index: 1000;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
 }
 
 .dialog-overlay.active {
@@ -342,6 +353,12 @@ body {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.form-hint {
+    color: var(--secondary-color);
+    font-size: 0.85em;
+    margin-top: 4px;
 }
 
 /* Dialog Buttons */
@@ -400,6 +417,80 @@ body {
 /* 警告消息 */
 .message-warning {
     color: var(--warning-color);
+}
+
+/* 单选按钮组样式 */
+.radio-group {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.radio-group label:hover {
+    background-color: var(--hover-color);
+}
+
+.radio-group input[type="radio"] {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color);
+}
+
+.radio-group input[type="radio"]:checked + span {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.radio-group label[for="statusActive"] {
+    border-color: var(--success-color);
+}
+
+.radio-group label[for="statusInactive"] {
+    border-color: var(--warning-color);
+}
+
+.radio-group input[type="radio"]:checked + span.active {
+    color: var(--success-color);
+}
+
+.radio-group input[type="radio"]:checked + span.inactive {
+    color: var(--warning-color);
+}
+
+/* 图标按钮样式 */
+.icon-button {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--background-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.icon-button:hover {
+    background: var(--hover-background);
+    border-color: var(--primary-color);
+}
+
+.icon-button i {
+    font-size: 14px;
 }
 
 :root {

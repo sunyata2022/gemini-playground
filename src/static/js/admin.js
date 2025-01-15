@@ -1,9 +1,10 @@
 // Constants
 const API_BASE_URL = '';
 let ADMIN_TOKEN = localStorage.getItem('adminToken');
+let allKeys = [];  // 添加全局变量存储所有密钥
 
 // 存储所有密钥的数组
-let allKeys = [];
+// let allKeys = [];
 
 // 当前选中的筛选器
 let currentFilter = 'active';
@@ -15,7 +16,7 @@ function initializeApp() {
 
     // Auth related events
     elements.authDialog?.addEventListener('click', () => authenticate(elements));
-    elements.adminTokenInput?.addEventListener('keypress', (e) => {
+    elements.adminToken?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') authenticate(elements);
     });
 
@@ -63,9 +64,9 @@ function initializeApp() {
         });
     });
 
-    // 编辑备注对话框事件
-    elements.confirmEditNote?.addEventListener('click', () => updateKeyNote(elements));
-    elements.cancelEditNote?.addEventListener('click', () => hideEditNoteDialog(elements));
+    // 编辑对话框事件
+    elements.confirmEdit?.addEventListener('click', () => updateKey(elements));
+    elements.cancelEdit?.addEventListener('click', () => hideEditDialog(elements));
 
     // Check authentication on load
     if (!ADMIN_TOKEN) {
@@ -80,52 +81,59 @@ function initializeApp() {
 
 function getElements() {
     return {
-        // Auth related elements
+        // 验证对话框元素
         authDialog: document.getElementById('authDialog'),
-        adminTokenInput: document.getElementById('adminToken'),
-        confirmAuthBtn: document.getElementById('confirmAuth'),
+        adminToken: document.getElementById('adminToken'),
+        confirmAuth: document.getElementById('confirmAuth'),
+
+        // 主内容区域
         mainContent: document.getElementById('mainContent'),
+        keysListContent: document.getElementById('keysListContent'),
         
-        // Create key dialog elements
-        createKeyBtn: document.getElementById('createKeyBtn'),
+        // 创建密钥对话框元素
         createKeyDialog: document.getElementById('createKeyDialog'),
-        validityDaysInput: document.getElementById('validityDays'),
-        keyNoteInput: document.getElementById('keyNote'),
+        validityDays: document.getElementById('validityDays'),
+        keyNote: document.getElementById('keyNote'),
         confirmCreateKey: document.getElementById('confirmCreateKey'),
         cancelCreateKey: document.getElementById('cancelCreateKey'),
-        
-        // Key created dialog elements
+
+        // 密钥创建成功对话框元素
         keyCreatedDialog: document.getElementById('keyCreatedDialog'),
         createdKeyDisplay: document.getElementById('createdKeyDisplay'),
         keyValidityDisplay: document.getElementById('keyValidityDisplay'),
         copyKeyBtn: document.getElementById('copyKeyBtn'),
         closeKeyDialog: document.getElementById('closeKeyDialog'),
-        
-        // Message dialog elements
+
+        // 消息对话框元素
         messageDialog: document.getElementById('messageDialog'),
         messageText: document.getElementById('messageText'),
         confirmMessage: document.getElementById('confirmMessage'),
-        
-        // Confirm dialog elements
+
+        // 确认对话框元素
         confirmDialog: document.getElementById('confirmDialog'),
         confirmText: document.getElementById('confirmText'),
         confirmConfirm: document.getElementById('confirmConfirm'),
         cancelConfirm: document.getElementById('cancelConfirm'),
         
-        // Search and list elements
-        searchInput: document.getElementById('searchInput'),
-        keysListContent: document.querySelector('.keys-list-content'),
-        filterButtons: document.querySelectorAll('.filter-button'),
+        // 编辑对话框元素
+        editDialog: document.getElementById('editDialog'),
+        editNote: document.getElementById('editNoteInput'),  
+        editExpiryDays: document.getElementById('editExpiryDays'),
+        statusActive: document.getElementById('statusActive'),
+        statusInactive: document.getElementById('statusInactive'),
+        confirmEdit: document.getElementById('confirmEdit'),
+        cancelEdit: document.getElementById('cancelEdit'),
         
         // Tab elements
         tabButtons: document.querySelectorAll('.tab-button'),
         tabContents: document.querySelectorAll('.tab-content'),
         
-        // 编辑备注对话框元素
-        editNoteDialog: document.getElementById('editNoteDialog'),
-        editNoteInput: document.getElementById('editNoteInput'),
-        confirmEditNote: document.getElementById('confirmEditNote'),
-        cancelEditNote: document.getElementById('cancelEditNote'),
+        // 搜索元素
+        searchInput: document.getElementById('searchInput'),
+        filterButtons: document.querySelectorAll('.filter-button'),
+        
+        // 创建按钮
+        createKeyBtn: document.getElementById('createKeyBtn'),
     };
 }
 
@@ -157,11 +165,11 @@ function hideConfirmDialog(elements) {
 function showAuthDialog(elements) {
     elements.authDialog.classList.add('active');
     elements.mainContent.style.display = 'none';
-    elements.adminTokenInput.focus();
+    elements.adminToken.focus();
 }
 
 async function authenticate(elements) {
-    const token = elements.adminTokenInput.value.trim();
+    const token = elements.adminToken.value.trim();
     if (!token) {
         showMessageDialog(elements, '请输入管理员令牌', 'error');
         return;
@@ -174,24 +182,22 @@ async function authenticate(elements) {
             }
         });
 
-        if (!response.ok) {
-            throw new Error('无效的令牌');
-        }
+        if (!response.ok) throw new Error('无效的令牌');
 
         // Store token and initialize
         ADMIN_TOKEN = token;
         localStorage.setItem('adminToken', token);
         elements.authDialog.classList.remove('active');
         elements.mainContent.style.display = 'block';
-        elements.adminTokenInput.value = '';
+        elements.adminToken.value = '';
         
         // Initialize the app
         loadKeys(elements);
     } catch (error) {
         console.error('认证错误:', error);
         showMessageDialog(elements, '无效的管理员令牌，请重试', 'error');
-        elements.adminTokenInput.value = '';
-        elements.adminTokenInput.focus();
+        elements.adminToken.value = '';
+        elements.adminToken.focus();
     }
 }
 
@@ -203,9 +209,7 @@ async function verifyAndInitialize(elements) {
             }
         });
 
-        if (!response.ok) {
-            throw new Error('无效的令牌');
-        }
+        if (!response.ok) throw new Error('无效的令牌');
 
         // Token is valid, show content and initialize
         elements.authDialog.classList.remove('active');
@@ -226,8 +230,8 @@ function showCreateKeyDialog(elements) {
 
 function hideCreateKeyDialog(elements) {
     elements.createKeyDialog.classList.remove('active');
-    elements.validityDaysInput.value = '30';
-    elements.keyNoteInput.value = '';
+    elements.validityDays.value = '30';
+    elements.keyNote.value = '';
 }
 
 function showKeyCreatedDialog(elements, key, validity) {
@@ -241,8 +245,8 @@ function hideKeyCreatedDialog(elements) {
 }
 
 async function createNewKey(elements) {
-    const validityDays = parseInt(elements.validityDaysInput.value);
-    const note = elements.keyNoteInput.value;
+    const validityDays = parseInt(elements.validityDays.value);
+    const note = elements.keyNote.value;
 
     try {
         const response = await fetch(`${API_BASE_URL}/admin/keys`, {
@@ -277,7 +281,7 @@ async function loadKeys(elements) {
         if (!response.ok) throw new Error('加载密钥失败');
 
         const data = await response.json();
-        allKeys = data.keys; // 保存所有密钥
+        allKeys = data.keys;  // 更新全局变量
         const filteredKeys = filterAndSearchKeys(allKeys, elements.searchInput.value);
         renderKeysList(filteredKeys, elements);
     } catch (error) {
@@ -288,7 +292,7 @@ async function loadKeys(elements) {
 
 // 检查密钥是否有效
 function isKeyValid(key) {
-    return key.info.active && new Date(key.info.expiresAt) > new Date();
+    return key.info.active && key.info.expiresAt > Date.now();
 }
 
 // 格式化日期
@@ -343,130 +347,149 @@ function filterAndSearchKeys(keys, searchQuery) {
     return filteredKeys;
 }
 
-// 显示编辑备注对话框
-function showEditNoteDialog(elements, key) {
-    const dialog = elements.editNoteDialog;
-    const input = elements.editNoteInput;
+function getKeyStatus(info) {
+    if (!info.active) {
+        return { status: 'inactive', text: '已禁用', class: 'inactive-key' };
+    }
+    const now = Date.now();
+    if (now >= info.expiresAt) {
+        return { status: 'expired', text: '已过期', class: 'expired-key' };
+    }
+    return { status: 'valid', text: '有效', class: 'valid-key' };
+}
+
+// 显示编辑对话框
+function showEditDialog(elements, key) {
+    const dialog = elements.editDialog;
+    const noteInput = elements.editNote;
+    const expiryInput = elements.editExpiryDays;
+    const statusActive = elements.statusActive;
+    const statusInactive = elements.statusInactive;
     
-    // 设置当前密钥的备注
+    // 设置当前密钥的信息
     const keyData = allKeys.find(k => k.key === key);
-    input.value = keyData?.info.note || '';
+    if (!keyData) return;
+
+    noteInput.value = keyData.info.note || '';
+    expiryInput.value = '0';
+    
+    // 设置密钥状态
+    const now = Date.now();
+    const isActive = keyData.info.active && keyData.info.expiresAt > now;
+    statusActive.checked = isActive;
+    statusInactive.checked = !isActive;
     
     // 存储当前编辑的密钥
     dialog.dataset.key = key;
+    dialog.dataset.originalActive = String(isActive);
     
-    dialog.style.display = 'flex';
+    dialog.classList.add('active');
 }
 
-// 隐藏编辑备注对话框
-function hideEditNoteDialog(elements) {
-    elements.editNoteDialog.style.display = 'none';
-    elements.editNoteInput.value = '';
+// 隐藏编辑对话框
+function hideEditDialog(elements) {
+    elements.editDialog.classList.remove('active');
+    elements.editNote.value = '';
+    elements.editExpiryDays.value = '0';
 }
 
-// 更新密钥备注
-async function updateKeyNote(elements) {
-    const dialog = elements.editNoteDialog;
+// 更新密钥信息
+async function updateKey(elements) {
+    const dialog = elements.editDialog;
     const key = dialog.dataset.key;
-    const note = elements.editNoteInput.value.trim();
+    const note = elements.editNote.value.trim();
+    const expiryDays = parseInt(elements.editExpiryDays.value, 10);
+    const newActive = elements.statusActive.checked;
+    const originalActive = dialog.dataset.originalActive === 'true';
+    
+    if (isNaN(expiryDays)) {
+        showMessageDialog(elements, '请输入有效的天数', 'error');
+        return;
+    }
+    
+    // 始终发送 active 状态，因为它是一个布尔值
+    const updates = {
+        active: newActive
+    };
+    
+    // 只在有值时添加其他字段
+    if (note) {
+        updates.note = note;
+    }
+    if (expiryDays !== 0) {  
+        updates.expiryDays = expiryDays;
+    }
     
     try {
-        const response = await fetch(`/admin/keys/${key}/note`, {
+        const response = await fetch(`/admin/keys/${key}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': localStorage.getItem('adminToken')
             },
-            body: JSON.stringify({ note })
+            body: JSON.stringify(updates)
         });
 
-        if (!response.ok) throw new Error('更新备注失败');
+        if (!response.ok) throw new Error('更新失败');
 
         const data = await response.json();
         if (data.success) {
-            hideEditNoteDialog(elements);
-            showMessageDialog(elements, '备注已更新', 'success');
+            hideEditDialog(elements);
+            showMessageDialog(elements, '更新成功', 'success');
             loadKeys(elements);
         } else {
-            showMessageDialog(elements, '更新备注失败：' + data.message, 'error');
+            showMessageDialog(elements, '更新失败：' + data.message, 'error');
         }
     } catch (error) {
-        console.error('更新备注错误:', error);
-        showMessageDialog(elements, '更新备注失败，请重试', 'error');
+        console.error('更新密钥错误:', error);
+        showMessageDialog(elements, '更新失败，请重试', 'error');
     }
 }
 
 function renderKeysList(keys, elements) {
-    let html = '';
-    keys.forEach(key => {
-        const isValid = isKeyValid(key);
-        const sourceText = getSourceText(key.info.source);
-        html += `
-        <div class="key-item" data-key="${key.key}">
+    const listContent = keys.map(({ key, info }) => {
+        const now = Date.now();
+        const isExpired = now >= info.expiresAt;
+        const isDisabled = !info.active;
+        const isInvalid = isExpired || isDisabled;
+        const keyClass = isInvalid ? 'invalid-key' : 'valid-key';
+        const statusText = isDisabled ? '已禁用' : (isExpired ? '已过期' : '');
+        const sourceText = getSourceText(info.source);
+        
+        return `
+        <div class="key-item">
             <div class="key-main">
                 <div class="key-info">
-                    <div class="key-text"><strong>密钥：</strong><span class="${isValid ? 'valid-key' : 'invalid-key'}">${key.key}</span></div>
+                    <div class="key-text">
+                        <strong>密钥：</strong>
+                        <span class="${keyClass}" style="${isInvalid ? 'text-decoration: line-through; color: red;' : ''}">${key}</span>
+                        ${statusText ? `<span class="status-text">${statusText}</span>` : ''}
+                    </div>
                     <div class="key-text"><strong>来源：</strong>${sourceText}</div>
-                    <div class="key-text"><strong>创建：</strong>${formatDate(key.info.createdAt)}</div>
-                    <div class="key-text"><strong>过期：</strong>${formatDate(key.info.expiresAt)}</div>
+                    <div class="key-text"><strong>创建：</strong>${formatDate(info.createdAt)}</div>
+                    <div class="key-text"><strong>过期：</strong>${formatDate(info.expiresAt)}</div>
                 </div>
                 <div class="key-note">
-                    <strong>备注：</strong>${key.info.note || '无'}
+                    <strong>备注：</strong>${info.note || '无'}
                 </div>
             </div>
             <div class="key-actions">
-                <button class="action-button edit-note" title="编辑备注" data-key="${key.key}">编辑</button>
-                <button class="action-button copy-key" title="复制密钥" data-key="${key.key}">复制</button>
-                <button class="action-button delete-key" title="停用密钥" data-key="${key.key}">停用</button>
+                <button class="secondary-button" onclick="showEditDialog(globalElements, '${key}')">
+                    <i class="fas fa-edit"></i>
+                    编辑
+                </button>
+                <button class="icon-button" onclick="copyKey('${key}', globalElements)" title="复制密钥">
+                    复制
+                    <i class="fas fa-copy"></i>
+                </button>
             </div>
         </div>
-    `;
-    });
-    elements.keysListContent.innerHTML = html;
+        `;
+    }).join('');
 
-    // 添加事件监听器
-    elements.keysListContent.querySelectorAll('.copy-key').forEach(button => {
-        button.addEventListener('click', () => copyKey(button.dataset.key, elements));
-    });
-
-    elements.keysListContent.querySelectorAll('.delete-key').forEach(button => {
-        button.addEventListener('click', () => deactivateKey(button.dataset.key, elements));
-    });
-
-    elements.keysListContent.querySelectorAll('.edit-note').forEach(button => {
-        button.addEventListener('click', () => showEditNoteDialog(elements, button.dataset.key));
-    });
+    elements.keysListContent.innerHTML = listContent || '<div class="no-keys">暂无密钥</div>';
 }
 
-async function deactivateKey(key, elements) {
-    if (!confirm('确定要停用此密钥吗？停用后将无法恢复。')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/keys/${key}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${ADMIN_TOKEN}`
-            }
-        });
-
-        if (!response.ok) throw new Error('停用密钥失败');
-
-        const data = await response.json();
-        if (data.success) {
-            showMessageDialog(elements, '密钥已停用', 'success');
-            loadKeys(elements);
-        } else {
-            showMessageDialog(elements, '停用密钥失败：' + data.message, 'error');
-        }
-    } catch (error) {
-        console.error('停用密钥错误:', error);
-        showMessageDialog(elements, '停用密钥失败，请重试', 'error');
-    }
-}
-
-// 复制文本到剪贴板
 async function copyTextToClipboard(text) {
     try {
         // 首先尝试使用 Clipboard API

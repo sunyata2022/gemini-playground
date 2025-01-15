@@ -1,4 +1,4 @@
-import { KeyManager } from "./key_manager.ts";
+import { KeyManager, KeySource } from "./key_manager.ts";
 import { SYSTEM_KEY, ADMIN_TOKEN, validateAdminToken } from "./config.ts";
 
 const getContentType = (path: string): string => {
@@ -130,7 +130,7 @@ async function handleKeyManagement(req: Request): Promise<Response> {
 
   if (req.method === "POST" && url.pathname === "/admin/keys") {
     try {
-      const { validityDays } = await req.json();
+      const { validityDays, note } = await req.json();
       if (!validityDays || typeof validityDays !== 'number' || validityDays <= 0) {
         return new Response(JSON.stringify({ 
           error: "Invalid validityDays parameter" 
@@ -140,11 +140,34 @@ async function handleKeyManagement(req: Request): Promise<Response> {
         });
       }
 
-      const newKey = await keyManager.createKey(validityDays);
+      const newKey = await keyManager.createKey(validityDays, KeySource.ADMIN_MANUAL, note);
       return new Response(JSON.stringify({ 
         key: newKey,
         expiresIn: `${validityDays} days`
       }), {
+        headers: { "content-type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({ 
+        error: "Invalid request body" 
+      }), {
+        status: 400,
+        headers: { "content-type": "application/json" }
+      });
+    }
+  }
+
+  if (req.method === "PUT" && url.pathname.match(/^\/admin\/keys\/[^/]+$/)) {
+    try {
+      const key = url.pathname.split("/").pop()!;
+      const { note, expiryDays, active } = await req.json();
+      
+      const success = await keyManager.updateKey(key, { note, expiryDays, active });
+      return new Response(JSON.stringify({ 
+        success,
+        message: success ? "Key updated successfully" : "Key not found"
+      }), {
+        status: success ? 200 : 404,
         headers: { "content-type": "application/json" }
       });
     } catch (error) {
@@ -165,20 +188,6 @@ async function handleKeyManagement(req: Request): Promise<Response> {
     }), {
       headers: { "content-type": "application/json" }
     });
-  }
-
-  if (req.method === "DELETE" && url.pathname.startsWith("/admin/keys/")) {
-    const keyToDelete = url.pathname.split("/").pop();
-    if (keyToDelete) {
-      const success = await keyManager.deactivateKey(keyToDelete);
-      return new Response(JSON.stringify({ 
-        success,
-        message: success ? "Key deactivated successfully" : "Key not found"
-      }), {
-        status: success ? 200 : 404,
-        headers: { "content-type": "application/json" }
-      });
-    }
   }
 
   return new Response(JSON.stringify({ 

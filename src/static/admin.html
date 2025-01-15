@@ -62,7 +62,7 @@
                 <h3>创建新密钥</h3>
                 <div class="form-group">
                     <label for="validityDays">有效期（天）</label>
-                    <input type="number" id="validityDays" value="30" min="1">
+                    <input type="number" id="validityDays" value="30">
                 </div>
                 <div class="form-group">
                     <label for="keyNote">备注</label>
@@ -117,6 +117,41 @@
                 <div class="dialog-buttons">
                     <button class="secondary-button" id="cancelConfirm">取消</button>
                     <button class="primary-button" id="confirmConfirm">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑对话框 -->
+    <div class="dialog-overlay" id="editDialog">
+        <div class="dialog">
+            <div class="dialog-content">
+                <h3>编辑密钥</h3>
+                <div class="form-group">
+                    <label for="editExpiryDays">增加有效期（天）</label>
+                    <input type="number" id="editExpiryDays" value="0">
+                    <div class="form-hint">可以输入负数来减少天数</div>
+                </div>
+                <div class="form-group">
+                    <label for="editNoteInput">备注</label>
+                    <input type="text" id="editNoteInput" placeholder="记录密钥用途、使用者等信息，方便后续管理">
+                </div>
+                <div class="form-group">
+                    <label>密钥状态</label>
+                    <div class="radio-group">
+                        <label for="statusActive">
+                            <input type="radio" name="keyStatus" id="statusActive">
+                            <span class="active">有效</span>
+                        </label>
+                        <label for="statusInactive">
+                            <input type="radio" name="keyStatus" id="statusInactive">
+                            <span class="inactive">失效</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="dialog-buttons">
+                    <button class="secondary-button" id="cancelEdit">取消</button>
+                    <button class="primary-button" id="confirmEdit">确定</button>
                 </div>
             </div>
         </div>

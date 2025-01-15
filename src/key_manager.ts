@@ -77,7 +77,7 @@ export class KeyManager {
         return keyInfo.value.active && now < keyInfo.value.expiresAt;
     }
 
-    async deactivateKey(key: string): Promise<boolean> {
+    async updateKeyNote(key: string, note: string): Promise<boolean> {
         const keyInfo = await this.kv.get<KeyInfo>([KV_KEY_PREFIX, key]);
         
         if (!keyInfo.value) {
@@ -86,8 +86,41 @@ export class KeyManager {
 
         const updatedInfo: KeyInfo = {
             ...keyInfo.value,
-            active: false,
+            note
         };
+
+        await this.kv.set([KV_KEY_PREFIX, key], updatedInfo);
+        return true;
+    }
+
+    async updateKey(key: string, updates: { note?: string; expiryDays?: number; active?: boolean }): Promise<boolean> {
+        const keyInfo = await this.kv.get<KeyInfo>([KV_KEY_PREFIX, key]);
+        
+        if (!keyInfo.value) {
+            return false;
+        }
+
+        const updatedInfo: KeyInfo = {
+            ...keyInfo.value
+        };
+
+        // 分别处理每个可能的更新
+        if (updates.note !== undefined) {
+            updatedInfo.note = updates.note;
+        }
+        if (updates.active !== undefined) {
+            updatedInfo.active = updates.active;
+        }
+        if (updates.expiryDays !== undefined) {
+            // 支持负数，减少天数
+            const daysInMs = updates.expiryDays * 24 * 60 * 60 * 1000;
+            updatedInfo.expiresAt = keyInfo.value.expiresAt + daysInMs;
+            
+            // 确保过期时间不会小于当前时间
+            if (updatedInfo.expiresAt < updatedInfo.createdAt) {
+                updatedInfo.expiresAt = updatedInfo.createdAt;
+            }
+        }
 
         await this.kv.set([KV_KEY_PREFIX, key], updatedInfo);
         return true;
