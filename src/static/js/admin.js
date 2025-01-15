@@ -49,6 +49,10 @@ function initializeApp() {
         elements.confirmCallback = null;
     });
 
+    // 编辑对话框事件
+    elements.cancelEdit?.addEventListener('click', () => hideEditDialog(elements));
+    elements.confirmEdit?.addEventListener('click', () => updateKey(elements));
+
     // Tab functionality
     elements.tabButtons?.forEach(button => {
         button?.addEventListener('click', () => switchTab(button.dataset.tab));
