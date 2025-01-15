@@ -20,17 +20,50 @@ const getContentType = (path: string): string => {
 const keyManager = new KeyManager(SYSTEM_KEY);
 await keyManager.init();
 
+// 提取共同的 API Key 验证逻辑
+async function validateAndGetSystemKey(apiKey: string | null): Promise<{ isValid: boolean; error?: string }> {
+  console.log('Validating API Key:', apiKey ? `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}` : 'null');
+  
+  if (!apiKey) {
+    console.log('API Key validation failed: Missing API Key');
+    return { isValid: false, error: "Missing API Key" };
+  }
+
+  const isValidKey = await keyManager.validateKey(apiKey);
+  console.log('API Key validation result:', isValidKey);
+  
+  if (!isValidKey) {
+    console.log('API Key validation failed: Invalid or expired');
+    return { isValid: false, error: "Invalid or expired API Key" };
+  }
+
+  console.log('API Key validation successful');
+  return { isValid: true };
+}
+
 async function handleWebSocket(req: Request): Promise<Response> {
-  const { socket: clientWs, response } = Deno.upgradeWebSocket(req);
-  
+  // 从 URL 参数中获取 API Key
   const url = new URL(req.url);
-  const targetUrl = `wss://generativelanguage.googleapis.com${url.pathname}${url.search}`;
+  const apiKey = url.searchParams.get("key");
+  console.log('WebSocket request received, URL:', url.toString());
   
-  console.log('Target URL:', targetUrl);
+  // 验证 API Key
+  const validation = await validateAndGetSystemKey(apiKey);
+  if (!validation.isValid) {
+    console.log('WebSocket connection rejected:', validation.error);
+    return new Response(validation.error, { status: 401 });
+  }
+  
+  // 使用系统 Key 创建新的目标 URL
+  const targetUrl = new URL(`wss://generativelanguage.googleapis.com${url.pathname}`);
+  targetUrl.searchParams.set("key", SYSTEM_KEY);
+  console.log('WebSocket connecting to Gemini with system key:', 
+    `${SYSTEM_KEY.slice(0, 4)}...${SYSTEM_KEY.slice(-4)}`);
+  
+  const { socket: clientWs, response } = Deno.upgradeWebSocket(req);
+  const targetWs = new WebSocket(targetUrl.toString());
   
   const pendingMessages: string[] = [];
-  const targetWs = new WebSocket(targetUrl);
-  
   targetWs.onopen = () => {
     console.log('Connected to Gemini');
     pendingMessages.forEach(msg => targetWs.send(msg));
@@ -76,28 +109,31 @@ async function handleWebSocket(req: Request): Promise<Response> {
 
 async function handleAPIRequest(req: Request): Promise<Response> {
   try {
-    // 验证 API Key
+    console.log('API request received:', req.url);
+    
+    // 从请求头中获取 API Key
     const authHeader = req.headers.get("Authorization");
     const apiKey = authHeader?.replace("Bearer ", "");
+    console.log('Authorization header present:', !!authHeader);
 
-    if (!apiKey) {
-      return new Response("Missing API Key", { status: 401 });
-    }
-
-    const isValidKey = await keyManager.validateKey(apiKey);
-    if (!isValidKey) {
-      return new Response("Invalid or expired API Key", { status: 401 });
+    // 验证 API Key
+    const validation = await validateAndGetSystemKey(apiKey);
+    if (!validation.isValid) {
+      console.log('API request rejected:', validation.error);
+      return new Response(validation.error, { status: 401 });
     }
 
     // 替换请求头中的 API Key 为系统 Key
     const newHeaders = new Headers(req.headers);
     newHeaders.set("Authorization", `Bearer ${SYSTEM_KEY}`);
+    console.log('Request headers updated with system key');
     
     const modifiedReq = new Request(req.url, {
       method: req.method,
       headers: newHeaders,
       body: req.body,
     });
+    console.log('Modified request created, forwarding to worker');
 
     const worker = await import('./api_proxy/worker.mjs');
     return await worker.default.fetch(modifiedReq);
