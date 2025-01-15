@@ -276,7 +276,8 @@ async function handleRequest(req: Request): Promise<Response> {
   // API 请求处理
   if (url.pathname.endsWith("/chat/completions") ||
       url.pathname.endsWith("/embeddings") ||
-      url.pathname.endsWith("/models")) {
+      url.pathname.endsWith("/models") ||
+      url.pathname.endsWith(":generateContent")) {
     return handleAPIRequest(req);
   }
 
