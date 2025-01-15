@@ -293,6 +293,39 @@ async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
   console.log('Request URL:', req.url);
 
+  // 管理员验证路由
+  if (url.pathname === "/api/admin/verify") {
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+        },
+      });
+    }
+    
+    if (req.method === "POST") {
+      const authHeader = req.headers.get("Authorization");
+      if (validateAdminToken(authHeader)) {
+        return addCorsHeaders(new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+      return addCorsHeaders(new Response(JSON.stringify({ success: false, error: "Invalid admin token" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }));
+    }
+    
+    return addCorsHeaders(new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json" },
+    }));
+  }
+
   // Key 管理相关的路由
   if (url.pathname.startsWith("/admin/keys")) {
     return handleKeyManagement(req);
