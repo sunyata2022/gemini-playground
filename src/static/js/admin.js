@@ -1,10 +1,9 @@
 // Constants
 const API_BASE_URL = '';
-let ADMIN_TOKEN = localStorage.getItem('adminToken');
-let allKeys = [];  // 添加全局变量存储所有密钥
+let ADMIN_TOKEN = sessionStorage.getItem('adminToken');
 
 // 存储所有密钥的数组
-// let allKeys = [];
+let allKeys = [];  
 
 // 当前选中的筛选器
 let currentFilter = 'active';
@@ -15,10 +14,17 @@ function initializeApp() {
     const elements = getElements();
 
     // Auth related events
-    elements.authDialog?.addEventListener('click', () => authenticate(elements));
+    elements.authDialog?.addEventListener('click', (e) => {
+        // 点击背景时阻止事件冒泡，但不关闭对话框
+        if (e.target === elements.authDialog) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
     elements.adminToken?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') authenticate(elements);
     });
+    elements.confirmAuth?.addEventListener('click', () => authenticate(elements));
 
     // Key management related events
     elements.createKeyBtn?.addEventListener('click', () => showCreateKeyDialog(elements));
@@ -43,42 +49,56 @@ function initializeApp() {
         elements.confirmCallback = null;
     });
 
+    // 编辑对话框事件
+    elements.cancelEdit?.addEventListener('click', () => hideEditDialog(elements));
+    elements.confirmEdit?.addEventListener('click', () => updateKey(elements));
+
     // Tab functionality
     elements.tabButtons?.forEach(button => {
         button?.addEventListener('click', () => switchTab(button.dataset.tab));
     });
 
-    // 筛选按钮事件
-    elements.filterButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // 更新按钮状态
-            elements.filterButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            // 更新当前筛选器
-            currentFilter = button.dataset.filter;
-            
-            // 重新渲染列表
-            const filteredKeys = filterAndSearchKeys(allKeys, elements.searchInput.value);
-            renderKeysList(filteredKeys, elements);
-        });
-    });
-
-    // 编辑对话框事件
-    elements.confirmEdit?.addEventListener('click', () => updateKey(elements));
-    elements.cancelEdit?.addEventListener('click', () => hideEditDialog(elements));
-
-    // Check authentication on load
-    if (!ADMIN_TOKEN) {
-        showAuthDialog(elements);
+    // 检查是否已经登录
+    if (ADMIN_TOKEN) {
+        // 验证已存储的 token 是否有效
+        verifyStoredToken(elements);
     } else {
-        verifyAndInitialize(elements);
+        showAuthDialog(elements);
     }
 
     // Return elements for use in other functions
     return elements;
 }
 
+// 验证已存储的 token
+async function verifyStoredToken(elements) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/verify`, {
+            method: 'POST',
+            headers: {
+                'Authorization': ADMIN_TOKEN,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+            elements.authDialog.style.display = 'none';
+            elements.mainContent.style.display = 'block';
+            loadKeys(elements);
+        } else {
+            ADMIN_TOKEN = null;
+            sessionStorage.removeItem('adminToken');
+            showAuthDialog(elements);
+        }
+    } catch (error) {
+        ADMIN_TOKEN = null;
+        sessionStorage.removeItem('adminToken');
+        showAuthDialog(elements);
+    }
+}
+
+// Get DOM elements
 function getElements() {
     return {
         // 验证对话框元素
@@ -176,50 +196,36 @@ async function authenticate(elements) {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/admin/keys`, {
+        const response = await fetch(`${API_BASE_URL}/api/admin/verify`, {
+            method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': token,
+                'Content-Type': 'application/json'
             }
         });
 
-        if (!response.ok) throw new Error('无效的令牌');
-
-        // Store token and initialize
-        ADMIN_TOKEN = token;
-        localStorage.setItem('adminToken', token);
-        elements.authDialog.classList.remove('active');
-        elements.mainContent.style.display = 'block';
-        elements.adminToken.value = '';
-        
-        // Initialize the app
-        loadKeys(elements);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                ADMIN_TOKEN = token;
+                sessionStorage.setItem('adminToken', token);
+                elements.authDialog.style.display = 'none';
+                elements.mainContent.style.display = 'block';
+                loadKeys(elements);
+            } else {
+                elements.adminToken.value = '';
+                elements.adminToken.focus();
+                showMessageDialog(elements, data.error || '管理员令牌验证失败', 'error');
+            }
+        } else {
+            elements.adminToken.value = '';
+            elements.adminToken.focus();
+            showMessageDialog(elements, '管理员令牌验证失败', 'error');
+        }
     } catch (error) {
-        console.error('认证错误:', error);
-        showMessageDialog(elements, '无效的管理员令牌，请重试', 'error');
         elements.adminToken.value = '';
         elements.adminToken.focus();
-    }
-}
-
-async function verifyAndInitialize(elements) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/keys`, {
-            headers: {
-                'Authorization': `Bearer ${ADMIN_TOKEN}`
-            }
-        });
-
-        if (!response.ok) throw new Error('无效的令牌');
-
-        // Token is valid, show content and initialize
-        elements.authDialog.classList.remove('active');
-        elements.mainContent.style.display = 'block';
-        loadKeys(elements);
-    } catch (error) {
-        console.error('令牌验证错误:', error);
-        localStorage.removeItem('adminToken');
-        ADMIN_TOKEN = null;
-        showAuthDialog(elements);
+        showMessageDialog(elements, '验证过程中发生错误', 'error');
     }
 }
 
@@ -253,7 +259,7 @@ async function createNewKey(elements) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${ADMIN_TOKEN}`
+                'Authorization': ADMIN_TOKEN
             },
             body: JSON.stringify({ validityDays, note })
         });
@@ -274,14 +280,14 @@ async function loadKeys(elements) {
     try {
         const response = await fetch(`${API_BASE_URL}/admin/keys`, {
             headers: {
-                'Authorization': `Bearer ${ADMIN_TOKEN}`
+                'Authorization': ADMIN_TOKEN
             }
         });
 
         if (!response.ok) throw new Error('加载密钥失败');
 
         const data = await response.json();
-        allKeys = data.keys;  // 更新全局变量
+        allKeys = data.keys;  
         const filteredKeys = filterAndSearchKeys(allKeys, elements.searchInput.value);
         renderKeysList(filteredKeys, elements);
     } catch (error) {
@@ -425,7 +431,7 @@ async function updateKey(elements) {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': localStorage.getItem('adminToken')
+                'Authorization': ADMIN_TOKEN
             },
             body: JSON.stringify(updates)
         });
@@ -580,6 +586,22 @@ function initSearch(elements) {
             const filteredKeys = filterAndSearchKeys(allKeys, searchInput.value);
             renderKeysList(filteredKeys, elements);
         }
+    });
+
+    // 添加筛选按钮的点击事件处理
+    const filterButtons = document.querySelectorAll('.filter-button');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // 移除所有按钮的 active 类
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            // 给当前点击的按钮添加 active 类
+            button.classList.add('active');
+            // 更新当前筛选器
+            currentFilter = button.dataset.filter;
+            // 重新筛选并渲染列表
+            const filteredKeys = filterAndSearchKeys(allKeys, searchInput.value);
+            renderKeysList(filteredKeys, elements);
+        });
     });
 }
 
