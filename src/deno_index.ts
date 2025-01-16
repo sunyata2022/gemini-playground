@@ -118,7 +118,7 @@ async function handleWebSocket(req: Request): Promise<Response> {
     console.error('Gemini WebSocket error:', error);
   };
 
-  return addCorsHeaders(response);
+  return response;
 }
 
 async function handleAPIRequest(req: Request): Promise<Response> {
