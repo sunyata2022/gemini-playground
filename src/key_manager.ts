@@ -1,4 +1,4 @@
-import { crypto } from "https://deno.land/std/crypto/mod.ts";
+import { customAlphabet } from "https://deno.land/x/nanoid/mod.ts";
 
 // 密钥来源枚举
 export enum KeySource {
@@ -31,16 +31,9 @@ export class KeyManager {
     }
 
     private generateKey(): string {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const randomValues = new Uint8Array(KEY_LENGTH);
-        crypto.getRandomValues(randomValues);
-        
-        let result = '';
-        for (let i = 0; i < KEY_LENGTH; i++) {
-            result += chars[randomValues[i] % chars.length];
-        }
-        
-        return result;
+        // 使用与原来相同的字符集，保持兼容性
+        const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', KEY_LENGTH);
+        return nanoid();
     }
 
     async createKey(validityDays: number, source: KeySource = KeySource.ADMIN_MANUAL, note?: string): Promise<string> {
