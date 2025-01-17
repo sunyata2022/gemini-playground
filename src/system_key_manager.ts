@@ -158,21 +158,22 @@ export class SystemKeyManager {
     }
 
     // 获取所有 keys 的详细信息
-    async listKeys(): Promise<Array<SystemKeyInfo & { status: 'active' | 'inactive' }>> {
-        const result: Array<SystemKeyInfo & { status: 'active' | 'inactive' }> = [];
+    async listKeys(): Promise<{ active: SystemKeyInfo[]; inactive: SystemKeyInfo[] }> {
+        const active: SystemKeyInfo[] = [];
+        const inactive: SystemKeyInfo[] = [];
         
         // 获取所有 key 的信息
         for (const key of this.activeKeys) {
             const info = await this.getKeyInfo(key);
-            if (info) result.push({ ...info, status: 'active' });
+            if (info) active.push(info);
         }
         
         for (const key of this.inactiveKeys) {
             const info = await this.getKeyInfo(key);
-            if (info) result.push({ ...info, status: 'inactive' });
+            if (info) inactive.push(info);
         }
         
-        return result;
+        return { active, inactive };
     }
 
     // 获取错误统计
@@ -184,7 +185,7 @@ export class SystemKeyManager {
         status: 'active' | 'inactive';
     }>> {
         const allKeys = await this.listKeys();
-        return allKeys
+        return allKeys.active.concat(allKeys.inactive)
             .filter(k => k.errorCount > 0)
             .map(({ key, account, errorCount, lastErrorAt, status }) => ({
                 key,
@@ -203,20 +204,5 @@ export class SystemKeyManager {
         
         this.activeKeys = activeResult.value || [];
         this.inactiveKeys = inactiveResult.value || [];
-    }
-
-    // 获取所有系统key的详细信息
-    async getAllKeys(): Promise<SystemKeyInfo[]> {
-        const allKeys = [...this.activeKeys, ...this.inactiveKeys];
-        const keys: SystemKeyInfo[] = [];
-
-        for (const key of allKeys) {
-            const keyInfo = await this.kv.get<SystemKeyInfo>([this.KV_KEY_INFO, key]);
-            if (keyInfo.value) {
-                keys.push(keyInfo.value);
-            }
-        }
-
-        return keys;
     }
 }

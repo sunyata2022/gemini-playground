@@ -23,11 +23,18 @@ export class ApiClient {
             headers
         });
 
+        const data = await response.json();
+        
         if (!response.ok) {
-            throw new Error(`API request failed: ${response.statusText}`);
+            // 如果服务器返回了错误信息，使用服务器的错误信息
+            if (data && data.error) {
+                throw new Error(data.error);
+            }
+            // 否则使用默认的错误信息
+            throw new Error(`请求失败: ${response.statusText}`);
         }
 
-        return response.json();
+        return data;
     }
 
     // 验证管理员令牌
@@ -56,10 +63,10 @@ export class ApiClient {
     }
 
     // 添加Gemini Key
-    async addGeminiKey(key, account, note) {
+    async addGeminiKey(data) {
         return this.request('/api/admin/system-keys', {
             method: 'POST',
-            body: JSON.stringify({ key, account, note })
+            body: JSON.stringify(data)
         });
     }
 

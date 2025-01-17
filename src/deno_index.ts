@@ -298,7 +298,7 @@ async function handleSystemKeyManagement(req: Request): Promise<Response> {
 
   try {
     if (method === 'GET' && url.pathname === '/api/admin/system-keys') {
-      const keys = await systemKeyManager.getAllKeys();
+      const keys = await systemKeyManager.listKeys();
       return addCorsHeaders(new Response(JSON.stringify(keys), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -310,11 +310,30 @@ async function handleSystemKeyManagement(req: Request): Promise<Response> {
       const { key, account, note } = data;
 
       if (!key || !account) {
-        return addCorsHeaders(new Response('Missing required fields', { status: 400 }));
+        return addCorsHeaders(new Response(JSON.stringify({
+          error: '缺少必要字段'
+        }), { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }));
       }
 
-      await systemKeyManager.addKey(key, account, note);
-      return addCorsHeaders(new Response('Key added successfully', { status: 200 }));
+      try {
+        await systemKeyManager.addKey(key, account, note);
+        return addCorsHeaders(new Response(JSON.stringify({
+          message: 'Key添加成功'
+        }), { 
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      } catch (error) {
+        return addCorsHeaders(new Response(JSON.stringify({
+          error: error instanceof Error ? error.message : '添加Key失败'
+        }), { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
     }
 
     return addCorsHeaders(new Response('Not Found', { status: 404 }));

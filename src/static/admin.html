@@ -67,6 +67,11 @@
                         <input type="text" id="searchGeminiInput" placeholder="搜索Gemini Key...">
                         <button class="clear-search" id="clearGeminiSearch" style="display: none;">×</button>
                     </div>
+                    <div class="filter-buttons">
+                        <button class="filter-button active" data-filter="active">有效</button>
+                        <button class="filter-button" data-filter="inactive">失效</button>
+                        <button class="filter-button" data-filter="all">全部</button>
+                    </div>
                 </div>
                 <div class="gemini-keys-list-content" id="geminiKeysListContent"></div>
             </div>
@@ -128,6 +133,7 @@
         <div class="dialog">
             <div class="dialog-content">
                 <h3>添加Gemini Key</h3>
+                <div class="error-message" id="geminiKeyErrorMessage" style="display: none; color: red; margin-bottom: 10px;"></div>
                 <div class="form-group">
                     <label for="geminiKey">Gemini Key</label>
                     <input type="text" id="geminiKey" placeholder="请输入Gemini Key">

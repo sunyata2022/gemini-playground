@@ -13,6 +13,7 @@ export function initGeminiKeyManager(elements) {
         geminiKeyInput: document.getElementById('geminiKey'),
         geminiAccountInput: document.getElementById('geminiAccount'),
         geminiKeyNoteInput: document.getElementById('geminiKeyNote'),
+        errorMessage: document.getElementById('geminiKeyErrorMessage'),
         cancelCreateBtn: document.getElementById('cancelCreateGeminiKey'),
         confirmCreateBtn: document.getElementById('confirmCreateGeminiKey'),
         
@@ -20,6 +21,10 @@ export function initGeminiKeyManager(elements) {
         messageDialog: document.getElementById('messageDialog'),
         messageText: document.getElementById('messageText'),
         confirmMessage: document.getElementById('confirmMessage'),
+
+        // 当前过滤状态
+        currentFilter: 'active',
+        allKeys: { active: [], inactive: [] }
     };
 
     // 初始化事件监听
@@ -65,6 +70,16 @@ function initEventListeners(manager) {
     manager.confirmCreateBtn.addEventListener('click', () => {
         handleCreateKey(manager);
     });
+
+    // 添加过滤按钮事件
+    document.querySelectorAll('#gemini .filter-button').forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelectorAll('#gemini .filter-button').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            manager.currentFilter = button.dataset.filter;
+            renderKeys(manager);
+        });
+    });
 }
 
 function toggleClearButton(manager) {
@@ -74,69 +89,65 @@ function toggleClearButton(manager) {
 function clearSearch(manager) {
     manager.searchInput.value = '';
     toggleClearButton(manager);
-    loadKeys(manager); // 重新加载所有keys
+    renderKeys(manager);
 }
 
 function handleSearch(manager) {
     const searchTerm = manager.searchInput.value.toLowerCase();
-    const keys = Array.from(manager.keysList.children);
-    
-    keys.forEach(keyElement => {
-        const keyText = keyElement.textContent.toLowerCase();
-        const shouldShow = keyText.includes(searchTerm);
-        keyElement.style.display = shouldShow ? 'block' : 'none';
-    });
+    renderKeys(manager, searchTerm);
 }
 
 async function loadKeys(manager) {
     try {
         const api = getApi();
         const keys = await api.getGeminiKeys();
-        renderKeys(manager, keys);
+        manager.allKeys = keys; // 存储所有keys
+        renderKeys(manager);
     } catch (error) {
         console.error('Error loading Gemini keys:', error);
         showMessage(manager, '加载Gemini keys失败', 'error');
     }
 }
 
-function renderKeys(manager, keys) {
-    manager.keysList.innerHTML = '';
+function renderKeys(manager, searchTerm = '') {
+    const { active, inactive } = manager.allKeys;
+    let keysToShow = [];
     
-    if (keys.length === 0) {
-        manager.keysList.innerHTML = '<div class="no-keys">暂无Gemini Keys</div>';
-        return;
+    // 根据过滤条件选择要显示的keys
+    if (manager.currentFilter === 'active') {
+        keysToShow = active;
+    } else if (manager.currentFilter === 'inactive') {
+        keysToShow = inactive;
+    } else {
+        keysToShow = [...active, ...inactive];
     }
 
-    keys.forEach(key => {
-        const keyElement = document.createElement('div');
-        keyElement.className = 'key-item';
-        keyElement.innerHTML = `
+    // 应用搜索过滤
+    if (searchTerm) {
+        keysToShow = keysToShow.filter(key => 
+            key.key.toLowerCase().includes(searchTerm) ||
+            key.account.toLowerCase().includes(searchTerm) ||
+            (key.note && key.note.toLowerCase().includes(searchTerm))
+        );
+    }
+
+    // 渲染keys
+    manager.keysList.innerHTML = keysToShow.map(key => `
+        <div class="key-item ${manager.currentFilter === 'all' ? (active.includes(key) ? 'active' : 'inactive') : ''}">
             <div class="key-info">
                 <div class="key-main">
-                    <span class="key-text">${key.key.slice(0, 4)}...${key.key.slice(-4)}</span>
+                    <span class="key-text">${key.key}</span>
                     <span class="key-account">${key.account}</span>
                 </div>
-                <div class="key-details">
-                    <span class="key-error-count">错误次数: ${key.errorCount}</span>
-                    ${key.lastErrorAt ? `<span class="key-last-error">最后错误: ${new Date(key.lastErrorAt).toLocaleString()}</span>` : ''}
-                    ${key.note ? `<span class="key-note">备注: ${key.note}</span>` : ''}
-                </div>
+                ${key.note ? `<div class="key-note">${key.note}</div>` : ''}
+                ${key.errorCount ? `<div class="key-error">错误次数: ${key.errorCount}</div>` : ''}
             </div>
             <div class="key-actions">
-                <button class="action-button edit" data-key="${key.key}">编辑</button>
-                <button class="action-button delete" data-key="${key.key}">删除</button>
+                <button onclick="editKey('${key.key}')">编辑</button>
+                <button onclick="deleteKey('${key.key}')">删除</button>
             </div>
-        `;
-
-        // 添加编辑和删除事件监听
-        const editBtn = keyElement.querySelector('.edit');
-        const deleteBtn = keyElement.querySelector('.delete');
-
-        editBtn.addEventListener('click', () => editKey(key));
-        deleteBtn.addEventListener('click', () => deleteKey(key));
-
-        manager.keysList.appendChild(keyElement);
-    });
+        </div>
+    `).join('');
 }
 
 function editKey(key) {
@@ -159,17 +170,23 @@ function showMessage(manager, message, type = 'info') {
 }
 
 function showCreateDialog(manager) {
-    // 清空输入框
+    manager.createDialog.style.display = 'block';
     manager.geminiKeyInput.value = '';
     manager.geminiAccountInput.value = '';
     manager.geminiKeyNoteInput.value = '';
-    
-    // 显示对话框
-    manager.createDialog.style.display = 'flex';
+    manager.errorMessage.style.display = 'none';
+    manager.errorMessage.textContent = '';
 }
 
 function hideCreateDialog(manager) {
     manager.createDialog.style.display = 'none';
+    manager.errorMessage.style.display = 'none';
+    manager.errorMessage.textContent = '';
+}
+
+function showDialogError(manager, message) {
+    manager.errorMessage.textContent = message;
+    manager.errorMessage.style.display = 'block';
 }
 
 async function handleCreateKey(manager) {
@@ -177,24 +194,24 @@ async function handleCreateKey(manager) {
     const account = manager.geminiAccountInput.value.trim();
     const note = manager.geminiKeyNoteInput.value.trim();
 
-    if (!key) {
-        showMessage(manager, '请输入Gemini Key', 'error');
-        return;
-    }
-
-    if (!account) {
-        showMessage(manager, '请输入账号', 'error');
+    if (!key || !account) {
+        showDialogError(manager, '请填写完整的Key信息');
         return;
     }
 
     try {
-        const api = getApi();  // 每次调用时获取最新的 api 实例
-        await api.addGeminiKey(key, account, note);
-        showMessage(manager, '添加Gemini Key成功');
+        const api = getApi();
+        const response = await api.addGeminiKey({ key, account, note });
+        
+        if (response.error) {
+            showDialogError(manager, response.error);
+            return;
+        }
+
         hideCreateDialog(manager);
-        loadKeys(manager); // 重新加载列表
+        loadKeys(manager);  // 重新加载列表
     } catch (error) {
-        console.error('Error adding Gemini key:', error);
-        showMessage(manager, '添加Gemini Key失败', 'error');
+        console.error('Error creating Gemini key:', error);
+        showDialogError(manager, error.message || '添加Gemini Key失败');
     }
 }
