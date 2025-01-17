@@ -4,13 +4,13 @@ import { filterAndSearchKeys } from './ui/search.js';
 import { formatDate, getRemainingTime, getRemainingTimeStatus } from './utils/date.js';
 import { copyToClipboard } from './utils/clipboard.js';
 
-// 存储所有密钥的数组
+// 存储所有用户Key的数组
 let allKeys = [];
 
-// 全局函数，用于复制和编辑密钥
+// 全局函数，用于复制和编辑用户Key
 window.copyKey = async function(key) {
     if (await copyToClipboard(key)) {
-        showMessageDialog(window.keyManagerElements, '复制成功', 'success');
+        showMessageDialog(window.keyManagerElements, '用户Key已复制', 'success');
     } else {
         showMessageDialog(window.keyManagerElements, '复制失败，请手动复制', 'error');
     }
@@ -21,19 +21,19 @@ window.showEditDialog = function(key) {
     elements.editDialog.dataset.key = key;
     elements.editDialog.style.display = 'flex';
     
-    // 找到对应的密钥数据
+    // 找到对应的用户Key数据
     const keyData = allKeys.find(k => k.key === key);
     if (keyData) {
         elements.editNote.value = keyData.info.note || '';
         elements.editValidityDays.value = 0;  // 默认不增加天数
         
-        // 设置密钥状态单选按钮，只根据active字段
+        // 设置用户Key状态单选按钮，只根据active字段
         elements.statusActive.checked = keyData.info.active;
         elements.statusInactive.checked = !keyData.info.active;
     }
 };
 
-// 初始化密钥管理模块
+// 初始化用户Key管理模块
 export function initKeyManager(elements) {
     // 保存 elements 到全局变量，供复制和编辑函数使用
     window.keyManagerElements = elements;
@@ -48,14 +48,14 @@ export function initKeyManager(elements) {
         confirmEdit
     } = elements;
 
-    // 创建密钥相关事件
+    // 创建用户Key相关事件
     createKeyBtn?.addEventListener('click', () => showCreateKeyDialog(elements));
     cancelCreateKey?.addEventListener('click', () => hideCreateKeyDialog(elements));
     confirmCreateKey?.addEventListener('click', () => createNewKey(elements));
     copyKeyBtn?.addEventListener('click', () => copyKeyInfo(elements));
     closeKeyDialog?.addEventListener('click', () => hideKeyCreatedDialog(elements));
 
-    // 编辑密钥相关事件
+    // 编辑用户Key相关事件
     cancelEdit?.addEventListener('click', () => hideEditDialog(elements));
     confirmEdit?.addEventListener('click', () => updateKey(elements));
 
@@ -70,13 +70,13 @@ export function initKeyManager(elements) {
     });
 }
 
-// 创建新密钥
+// 创建新用户Key
 async function createNewKey(elements) {
     const validityDays = parseInt(elements.validityDays.value);
     const note = elements.keyNote.value.trim();
 
     if (!validityDays || validityDays <= 0) {
-        showMessageDialog(elements, '请输入有效的天数', 'error');
+        showMessageDialog(elements, '请输入有效的有效期天数', 'error');
         return;
     }
 
@@ -89,14 +89,14 @@ async function createNewKey(elements) {
             showKeyCreatedDialog(elements, data.key, validityDays);
             await loadKeys(elements);
         } else {
-            showMessageDialog(elements, '创建密钥失败', 'error');
+            showMessageDialog(elements, '创建用户Key失败', 'error');
         }
     } catch (error) {
         showMessageDialog(elements, '创建过程中发生错误', 'error');
     }
 }
 
-// 加载密钥列表
+// 加载用户Key列表
 let isLoadingKeys = false;
 async function loadKeys(elements) {
     if (isLoadingKeys) {
@@ -135,13 +135,13 @@ async function loadKeys(elements) {
         }
     } catch (error) {
         console.error('Failed to load keys:', error);
-        showMessageDialog(elements, '加载密钥列表失败', 'error');
+        showMessageDialog(elements, '加载用户Key列表失败', 'error');
     } finally {
         isLoadingKeys = false;
     }
 }
 
-// 更新密钥
+// 更新用户Key
 async function updateKey(elements) {
     const keyToUpdate = elements.editDialog.dataset.key;
     const note = elements.editNote.value.trim();
@@ -168,7 +168,7 @@ async function updateKey(elements) {
     }
 }
 
-// 渲染密钥列表
+// 渲染用户Key列表
 function renderKeysList(keys, elements) {
     console.log('Rendering keys:', keys);
     const content = elements.keysListContent;
@@ -193,7 +193,7 @@ function renderKeysList(keys, elements) {
     });
 }
 
-// 创建密钥元素
+// 创建用户Key元素
 function createKeyElement(keyData, elements) {
     try {
         if (!keyData || !keyData.key || !keyData.info) {
@@ -208,7 +208,7 @@ function createKeyElement(keyData, elements) {
             <div class="key-main">
                 <div class="key-info">
                     <div class="key-text">
-                        <strong>密钥：</strong>
+                        <strong>用户Key：</strong>
                         <span class="${isKeyValid(info) ? 'valid-key' : 'invalid-key'}">${key}</span>
                     </div>
                     <div class="key-text">
@@ -238,7 +238,7 @@ function createKeyElement(keyData, elements) {
     }
 }
 
-// 检查密钥是否有效
+// 检查用户Key是否有效
 function isKeyValid(info) {
     return info.active && info.expiresAt > Date.now();
 }
@@ -264,11 +264,11 @@ function hideKeyCreatedDialog(elements) {
     elements.keyCreatedDialog.style.display = 'none';
 }
 
-// 复制密钥
+// 复制用户Key
 async function copyKeyInfo(elements) {
     const keyText = elements.createdKeyDisplay.textContent;
     if (await copyToClipboard(keyText)) {
-        showMessageDialog(elements, '复制成功', 'success');
+        showMessageDialog(elements, '用户Key已复制', 'success');
     } else {
         showMessageDialog(elements, '复制失败，请手动复制', 'error');
     }

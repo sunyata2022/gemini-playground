@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API 密钥管理</title>
+    <title>用户Key管理</title>
     <link rel="stylesheet" href="css/admin.css?v=1">
     <script type="module" src="js/admin.js?v=1"></script>
 </head>
@@ -27,18 +27,18 @@
     <!-- 主内容区域 -->
     <div class="container" id="mainContent" style="display: none;">
         <div class="tabs">
-            <button class="tab-button active" data-tab="keys">API Key</button>
+            <button class="tab-button active" data-tab="keys">用户Key</button>
             <button class="tab-button" data-tab="settings">提取链接</button>
         </div>
 
         <div class="tab-content active" id="keys">
             <div class="header">
-                <button class="primary-button" id="createKeyBtn">创建新密钥</button>
+                <button class="primary-button" id="createKeyBtn">创建用户Key</button>
             </div>
             <div class="keys-list">
                 <div class="search">
                     <div class="search-input-wrapper">
-                        <input type="text" id="searchInput" placeholder="搜索密钥...">
+                        <input type="text" id="searchInput" placeholder="搜索用户Key...">
                         <button class="clear-search" id="clearSearch" style="display: none;">×</button>
                     </div>
                     <div class="filter-buttons">
@@ -57,18 +57,18 @@
         </div>
     </div>
 
-    <!-- 创建密钥对话框 -->
+    <!-- 创建用户Key对话框 -->
     <div class="dialog-overlay" id="createKeyDialog">
         <div class="dialog">
             <div class="dialog-content">
-                <h3>创建新密钥</h3>
+                <h3>创建用户Key</h3>
                 <div class="form-group">
                     <label for="validityDays">有效期（天）</label>
                     <input type="number" id="validityDays" value="30">
                 </div>
                 <div class="form-group">
                     <label for="keyNote">备注</label>
-                    <input type="text" id="keyNote" placeholder="记录密钥用途、使用者等信息，方便后续管理">
+                    <input type="text" id="keyNote" placeholder="记录用户Key用途、使用者等信息，方便后续管理">
                 </div>
                 <div class="dialog-buttons">
                     <button class="secondary-button" id="cancelCreateKey">取消</button>
@@ -78,13 +78,13 @@
         </div>
     </div>
 
-    <!-- 密钥创建成功对话框 -->
+    <!-- 用户Key创建成功对话框 -->
     <div class="dialog-overlay" id="keyCreatedDialog">
         <div class="dialog">
             <div class="dialog-content">
-                <h3>密钥创建成功</h3>
+                <h3>用户Key创建成功</h3>
                 <div class="key-info">
-                    <p><strong>密钥：</strong><span id="createdKeyDisplay"></span></p>
+                    <p><strong>用户Key：</strong><span id="createdKeyDisplay"></span></p>
                     <p><strong>有效期：</strong><span id="keyValidityDisplay"></span></p>
                 </div>
                 <div class="dialog-buttons">
@@ -124,11 +124,11 @@
         </div>
     </div>
 
-    <!-- 编辑对话框 -->
+    <!-- 编辑用户Key对话框 -->
     <div class="dialog-overlay" id="editDialog">
         <div class="dialog">
             <div class="dialog-content">
-                <h3>编辑密钥</h3>
+                <h3>编辑用户Key</h3>
                 <div class="form-group">
                     <label for="editExpiryDays">增加有效期（天）</label>
                     <input type="number" id="editExpiryDays" value="0">
@@ -136,10 +136,10 @@
                 </div>
                 <div class="form-group">
                     <label for="editNoteInput">备注</label>
-                    <input type="text" id="editNoteInput" placeholder="记录密钥用途、使用者等信息，方便后续管理">
+                    <input type="text" id="editNoteInput" placeholder="记录用户Key用途、使用者等信息，方便后续管理">
                 </div>
                 <div class="form-group">
-                    <label>密钥状态</label>
+                    <label>用户Key状态</label>
                     <div class="radio-group">
                         <label for="statusActive">
                             <input type="radio" name="keyStatus" id="statusActive">
