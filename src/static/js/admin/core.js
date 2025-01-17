@@ -37,7 +37,9 @@ export async function initializeApp() {
         editNote: document.getElementById('editNoteInput'),
         editValidityDays: document.getElementById('editExpiryDays'),
         cancelEdit: document.getElementById('cancelEdit'),
-        confirmEdit: document.getElementById('confirmEdit')
+        confirmEdit: document.getElementById('confirmEdit'),
+        statusActive: document.getElementById('statusActive'),
+        statusInactive: document.getElementById('statusInactive')
     };
 
     // 动态导入所有模块

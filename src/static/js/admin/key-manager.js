@@ -1,7 +1,7 @@
 import { getApi } from './core.js';
 import { showMessageDialog, showConfirmDialog, hideEditDialog } from './ui/dialogs.js';
 import { filterAndSearchKeys } from './ui/search.js';
-import { formatDate, getRemainingTime } from './utils/date.js';
+import { formatDate, getRemainingTime, getRemainingTimeStatus } from './utils/date.js';
 import { copyToClipboard } from './utils/clipboard.js';
 
 // 存储所有密钥的数组
@@ -25,7 +25,11 @@ window.showEditDialog = function(key) {
     const keyData = allKeys.find(k => k.key === key);
     if (keyData) {
         elements.editNote.value = keyData.info.note || '';
-        elements.editValidityDays.value = Math.ceil((keyData.info.expiresAt - Date.now()) / (1000 * 60 * 60 * 24));
+        elements.editValidityDays.value = 0;  // 默认不增加天数
+        
+        // 设置密钥状态单选按钮，只根据active字段
+        elements.statusActive.checked = keyData.info.active;
+        elements.statusInactive.checked = !keyData.info.active;
     }
 };
 
@@ -142,10 +146,15 @@ async function updateKey(elements) {
     const keyToUpdate = elements.editDialog.dataset.key;
     const note = elements.editNote.value.trim();
     const validityDays = parseInt(elements.editValidityDays.value) || 0;
+    const active = elements.statusActive.checked;
 
     try {
         const api = getApi();
-        const data = await api.updateKey(keyToUpdate, { note, validityDays });
+        const data = await api.updateKey(keyToUpdate, { 
+            note, 
+            expiryDays: validityDays,  // 转换为后端期望的参数名
+            active 
+        });
         
         if (data.success) {
             hideEditDialog(elements);
@@ -209,7 +218,7 @@ function createKeyElement(keyData, elements) {
                     <div class="key-text">
                         <strong>过期：</strong>
                         <span>${formatDate(info.expiresAt)}</span>
-                        <span class="status-text">${getRemainingTime(info.expiresAt)}</span>
+                        <span class="status-text ${getRemainingTimeStatus(info.expiresAt)}">${getRemainingTime(info.expiresAt)}</span>
                     </div>
                 </div>
                 <div class="key-note">

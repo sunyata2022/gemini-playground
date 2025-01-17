@@ -62,9 +62,20 @@
 }
 
 .status-text {
-    color: var(--error);
     margin-left: 8px;
     font-size: 0.9em;
+}
+
+.status-text.normal {
+    color: var(--success);
+}
+
+.status-text.warning {
+    color: var(--error);
+}
+
+.status-text.expired {
+    color: var(--error);
 }
 
 .key-note {

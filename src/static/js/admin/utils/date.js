@@ -20,6 +20,19 @@ export function getRemainingTime(expiresAt) {
         return '已过期';
     }
 
-    const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+    const days = Math.ceil(remaining / (1000 * 60 * 60 * 24));
     return `${days}天`;
+}
+
+// 获取剩余时间状态
+export function getRemainingTimeStatus(expiresAt) {
+    const now = Date.now();
+    const remaining = expiresAt - now;
+    
+    if (remaining <= 0) {
+        return 'expired';
+    }
+
+    const days = Math.ceil(remaining / (1000 * 60 * 60 * 24));
+    return days > 3 ? 'normal' : 'warning';
 }

@@ -29,5 +29,41 @@
 }
 
 .form-group input::placeholder {
-    color: var(--secondary-color);
+    color: var(--text-muted);
+}
+
+.form-hint {
+    margin-top: 4px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.radio-group {
+    display: flex;
+    gap: 16px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.radio-group input[type="radio"] {
+    width: auto;
+    margin: 0;
+}
+
+.radio-group span {
+    font-size: 0.9rem;
+}
+
+.radio-group span.active {
+    color: var(--success);
+}
+
+.radio-group span.inactive {
+    color: var(--error);
 }
