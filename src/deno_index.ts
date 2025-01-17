@@ -283,6 +283,121 @@ async function handleKeyManagement(req: Request): Promise<Response> {
   }));
 }
 
+// System Key 管理相关的路由
+async function handleSystemKeyManagement(req: Request): Promise<Response> {
+  // 验证管理员权限
+  const authHeader = req.headers.get("Authorization");
+  if (!validateAdminToken(authHeader)) {
+    return addCorsHeaders(new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    }));
+  }
+
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/');
+  const key = pathParts[3]; // /admin/system-keys/:key
+
+  try {
+    // 处理 OPTIONS 请求
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+        },
+      });
+    }
+
+    // 列出所有 system keys
+    if (req.method === "GET" && !key) {
+      const keys = await systemKeyManager.listKeys();
+      return addCorsHeaders(new Response(JSON.stringify(keys), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    }
+
+    // 添加新的 system key
+    if (req.method === "POST" && !key) {
+      const body = await req.json();
+      const { key, account } = body;
+      if (!key || !account) {
+        return addCorsHeaders(new Response(JSON.stringify({ error: "Missing key or account" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+      await systemKeyManager.addKey(key, account);
+      return addCorsHeaders(new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    }
+
+    // 需要指定 key 的操作
+    if (!key) {
+      return addCorsHeaders(new Response(JSON.stringify({ error: "Key is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }));
+    }
+
+    // 删除指定的 system key
+    if (req.method === "DELETE") {
+      const success = await systemKeyManager.removeKey(key);
+      return addCorsHeaders(new Response(JSON.stringify({ success }), {
+        status: success ? 200 : 404,
+        headers: { "Content-Type": "application/json" },
+      }));
+    }
+
+    // 激活/停用指定的 key
+    if (req.method === "PUT") {
+      const action = pathParts[4]; // activate or deactivate
+      let success = false;
+      
+      if (action === "activate") {
+        success = await systemKeyManager.activateKey(key);
+      } else if (action === "deactivate") {
+        success = await systemKeyManager.deactivateKey(key);
+      } else {
+        return addCorsHeaders(new Response(JSON.stringify({ error: "Invalid action" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      return addCorsHeaders(new Response(JSON.stringify({ success }), {
+        status: success ? 200 : 404,
+        headers: { "Content-Type": "application/json" },
+      }));
+    }
+
+    // 获取指定 key 的错误统计
+    if (req.method === "GET" && pathParts[4] === "stats") {
+      const stats = await systemKeyManager.getErrorStats(key);
+      return addCorsHeaders(new Response(JSON.stringify(stats), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    }
+
+    return addCorsHeaders(new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json" },
+    }));
+  } catch (error) {
+    console.error('System key management error:', error);
+    return addCorsHeaders(new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    }));
+  }
+}
+
 async function handleStaticFile(pathname: string): Promise<Response> {
   try {
     // 如果请求的是根路径，返回 index.html
@@ -343,6 +458,11 @@ async function handleRequest(req: Request): Promise<Response> {
       status: 405,
       headers: { "Content-Type": "application/json" },
     }));
+  }
+
+  // System Key 管理相关的路由
+  if (url.pathname.startsWith("/admin/system-keys")) {
+    return handleSystemKeyManagement(req);
   }
 
   // Key 管理相关的路由
