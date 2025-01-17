@@ -18,9 +18,6 @@ if (Deno.env.get("DENO_ENV") !== "production") {
 // 用于验证管理接口的 token
 export const ADMIN_TOKEN = Deno.env.get("ADMIN_TOKEN") || "defaultAdminToken39CharactersLongForTesting";
 
-// Gemini API Key
-export const SYSTEM_KEY = Deno.env.get("SYSTEM_KEY") || "defaultGeminiKey39CharactersLongForTesting";
-
 export function validateAdminToken(authHeader: string | null): boolean {
   if (!authHeader) return false;
   

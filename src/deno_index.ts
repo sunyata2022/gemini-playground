@@ -1,5 +1,6 @@
 import { KeyManager, KeySource } from "./key_manager.ts";
-import { SYSTEM_KEY, ADMIN_TOKEN, validateAdminToken } from "./config.ts";
+import { SystemKeyManager } from "./system_key_manager.ts";
+import { ADMIN_TOKEN, validateAdminToken } from "./config.ts";
 
 const getContentType = (path: string): string => {
   const ext = path.split('.').pop()?.toLowerCase() || '';
@@ -16,9 +17,13 @@ const getContentType = (path: string): string => {
   return types[ext] || 'text/plain';
 };
 
-// 初始化 KeyManager
-const keyManager = new KeyManager(SYSTEM_KEY);
-await keyManager.init();
+// 初始化 managers
+const keyManager = new KeyManager();
+const systemKeyManager = new SystemKeyManager();
+await Promise.all([
+  keyManager.init(),
+  systemKeyManager.init()
+]);
 
 // 提取共同的 API Key 验证逻辑
 async function validateAndGetSystemKey(apiKey: string | null): Promise<{ isValid: boolean; error?: string }> {
@@ -70,9 +75,10 @@ async function handleWebSocket(req: Request): Promise<Response> {
   
   // 使用系统 Key 创建新的目标 URL
   const targetUrl = new URL(`wss://generativelanguage.googleapis.com${url.pathname}`);
-  targetUrl.searchParams.set("key", SYSTEM_KEY);
+  const systemKey = await systemKeyManager.getNextKey();
+  targetUrl.searchParams.set("key", systemKey);
   console.log('WebSocket connecting to Gemini with system key:', 
-    `${SYSTEM_KEY.slice(0, 4)}...${SYSTEM_KEY.slice(-4)}`);
+    `${systemKey.slice(0, 4)}...${systemKey.slice(-4)}`);
   
   const { socket: clientWs, response } = Deno.upgradeWebSocket(req);
   const targetWs = new WebSocket(targetUrl.toString());
@@ -152,21 +158,34 @@ async function handleAPIRequest(req: Request): Promise<Response> {
       return addCorsHeaders(new Response(validation.error, { status: 401 }));
     }
 
-    // 替换请求头中的 API Key 为系统 Key
+    // 转发到 Gemini API
+    const targetUrl = new URL(`https://generativelanguage.googleapis.com${url.pathname}${url.search}`);
+    const systemKey = await systemKeyManager.getNextKey();
+  
+    // 创建新的请求头
     const newHeaders = new Headers(req.headers);
-    newHeaders.set("Authorization", `Bearer ${SYSTEM_KEY}`);
-    console.log('Request headers updated with system key');
-    
-    const modifiedReq = new Request(req.url, {
-      method: req.method,
-      headers: newHeaders,
-      body: req.body,
-    });
-    console.log('Modified request created, forwarding to worker');
+    newHeaders.set("Authorization", `Bearer ${systemKey}`);
+  
+    try {
+      const response = await fetch(targetUrl.toString(), {
+        method: req.method,
+        headers: newHeaders,
+        body: req.body
+      });
 
-    const worker = await import('./api_proxy/worker.mjs');
-    const response = await worker.default.fetch(modifiedReq);
-    return addCorsHeaders(response);
+      if (!response.ok) {
+        await systemKeyManager.recordError(systemKey);
+      }
+
+      return addCorsHeaders(new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers
+      }));
+    } catch (error) {
+      await systemKeyManager.recordError(systemKey);
+      throw error;
+    }
   } catch (error) {
     console.error('API request error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

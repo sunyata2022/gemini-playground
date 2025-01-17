@@ -20,11 +20,6 @@ const KEY_LENGTH = 39; // 修改为39位，与 Gemini key 长度一致
 
 export class KeyManager {
     private kv: Deno.Kv;
-    private systemKey: string;
-
-    constructor(systemKey: string) {
-        this.systemKey = systemKey;
-    }
 
     async init() {
         this.kv = await Deno.openKv();
@@ -55,11 +50,6 @@ export class KeyManager {
     }
 
     async validateKey(key: string): Promise<boolean> {
-        // 如果是系统key，直接返回true
-        if (key === this.systemKey) {
-            return true;
-        }
-
         const keyInfo = await this.kv.get<KeyInfo>([KV_KEY_PREFIX, key]);
         
         if (!keyInfo.value) {
@@ -129,9 +119,5 @@ export class KeyManager {
         }
         
         return keys;
-    }
-
-    getSystemKey(): string {
-        return this.systemKey;
     }
 }
