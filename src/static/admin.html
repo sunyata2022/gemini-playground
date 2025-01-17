@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API 密钥管理</title>
-    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/admin.css?v=1">
+    <script type="module" src="js/admin.js?v=1"></script>
 </head>
 <body>
     <!-- 验证对话框 -->
@@ -38,6 +39,7 @@
                 <div class="search">
                     <div class="search-input-wrapper">
                         <input type="text" id="searchInput" placeholder="搜索密钥...">
+                        <button class="clear-search" id="clearSearch" style="display: none;">×</button>
                     </div>
                     <div class="filter-buttons">
                         <button class="filter-button active" data-filter="active">有效</button>
@@ -156,7 +158,5 @@
             </div>
         </div>
     </div>
-
-    <script src="js/admin.js"></script>
 </body>
 </html>

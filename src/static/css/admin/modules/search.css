@@ -1,0 +1,87 @@
+/* Search Styles */
+.search {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--background-color);
+}
+
+.search-input-wrapper {
+    margin-bottom: 16px;
+    position: relative;
+    max-width: 300px;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper input {
+    width: 100%;
+    padding: 8px 26px 8px 12px; /* 右侧预留空间给清除按钮 */
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.search-input-wrapper input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+}
+
+.clear-search {
+    position: absolute;
+    right: 8px;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 2; /* 确保按钮在输入文本之上 */
+}
+
+.clear-search:hover {
+    background-color: rgba(var(--text-muted-rgb), 0.1);
+    color: var(--text-color);
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-button {
+    padding: 6px 12px;
+    border: none;
+    background: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 0.9rem;
+    position: relative;
+    transition: color 0.2s ease;
+}
+
+.filter-button:hover {
+    color: var(--primary-color);
+}
+
+.filter-button.active {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.filter-button:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background-color: var(--border-color);
+}
