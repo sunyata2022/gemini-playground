@@ -49,6 +49,19 @@ export class ApiClient {
         });
     }
 
+    // 获取所有Gemini Keys
+    async getGeminiKeys() {
+        return this.request('/api/admin/system-keys');
+    }
+
+    // 添加Gemini Key
+    async addGeminiKey(key, account, note) {
+        return this.request('/api/admin/system-keys', {
+            method: 'POST',
+            body: JSON.stringify({ key, account, note })
+        });
+    }
+
     // 更新密钥
     async updateKey(key, updates) {
         return this.request(`/api/admin/keys/${key}`, {

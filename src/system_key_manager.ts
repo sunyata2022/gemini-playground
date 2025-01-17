@@ -197,13 +197,26 @@ export class SystemKeyManager {
     }
 
     // 从 KV 加载 key 列表到内存
-    private async loadKeys(): Promise<void> {
-        const [activeResult, inactiveResult] = await Promise.all([
-            this.kv.get<string[]>(this.KV_ACTIVE_KEYS),
-            this.kv.get<string[]>(this.KV_INACTIVE_KEYS)
-        ]);
+    async loadKeys(): Promise<void> {
+        const activeResult = await this.kv.get<string[]>(this.KV_ACTIVE_KEYS);
+        const inactiveResult = await this.kv.get<string[]>(this.KV_INACTIVE_KEYS);
         
         this.activeKeys = activeResult.value || [];
         this.inactiveKeys = inactiveResult.value || [];
+    }
+
+    // 获取所有系统key的详细信息
+    async getAllKeys(): Promise<SystemKeyInfo[]> {
+        const allKeys = [...this.activeKeys, ...this.inactiveKeys];
+        const keys: SystemKeyInfo[] = [];
+
+        for (const key of allKeys) {
+            const keyInfo = await this.kv.get<SystemKeyInfo>([this.KV_KEY_INFO, key]);
+            if (keyInfo.value) {
+                keys.push(keyInfo.value);
+            }
+        }
+
+        return keys;
     }
 }

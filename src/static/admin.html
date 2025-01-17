@@ -29,6 +29,7 @@
         <div class="tabs">
             <button class="tab-button active" data-tab="keys">用户Key</button>
             <button class="tab-button" data-tab="settings">提取链接</button>
+            <button class="tab-button" data-tab="gemini">Gemini Key</button>
         </div>
 
         <div class="tab-content active" id="keys">
@@ -54,6 +55,21 @@
         <div class="tab-content" id="settings">
             <h3>提取链接</h3>
             <p>更多设置选项即将推出...</p>
+        </div>
+
+        <div class="tab-content" id="gemini">
+            <div class="header">
+                <button class="primary-button" id="createGeminiKeyBtn">添加Gemini Key</button>
+            </div>
+            <div class="keys-list">
+                <div class="search">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="searchGeminiInput" placeholder="搜索Gemini Key...">
+                        <button class="clear-search" id="clearGeminiSearch" style="display: none;">×</button>
+                    </div>
+                </div>
+                <div class="gemini-keys-list-content" id="geminiKeysListContent"></div>
+            </div>
         </div>
     </div>
 
@@ -99,11 +115,34 @@
     <div class="dialog-overlay" id="messageDialog">
         <div class="dialog">
             <div class="dialog-content">
-                <div class="message-content">
-                    <p id="messageText"></p>
-                </div>
+                <p id="messageText"></p>
                 <div class="dialog-buttons">
                     <button class="primary-button" id="confirmMessage">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加Gemini Key对话框 -->
+    <div class="dialog-overlay" id="createGeminiKeyDialog">
+        <div class="dialog">
+            <div class="dialog-content">
+                <h3>添加Gemini Key</h3>
+                <div class="form-group">
+                    <label for="geminiKey">Gemini Key</label>
+                    <input type="text" id="geminiKey" placeholder="请输入Gemini Key">
+                </div>
+                <div class="form-group">
+                    <label for="geminiAccount">账号</label>
+                    <input type="text" id="geminiAccount" placeholder="请输入对应的Gemini账号">
+                </div>
+                <div class="form-group">
+                    <label for="geminiKeyNote">备注</label>
+                    <input type="text" id="geminiKeyNote" placeholder="可选，添加备注信息">
+                </div>
+                <div class="dialog-buttons">
+                    <button class="secondary-button" id="cancelCreateGeminiKey">取消</button>
+                    <button class="primary-button" id="confirmCreateGeminiKey">添加</button>
                 </div>
             </div>
         </div>
