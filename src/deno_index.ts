@@ -213,7 +213,7 @@ async function handleKeyManagement(req: Request): Promise<Response> {
     }));
   }
 
-  if (req.method === "POST" && url.pathname === "/admin/keys") {
+  if (req.method === "POST" && url.pathname === "/api/admin/keys") {
     try {
       const { validityDays, note } = await req.json();
       if (!validityDays || typeof validityDays !== 'number' || validityDays <= 0) {
@@ -242,7 +242,7 @@ async function handleKeyManagement(req: Request): Promise<Response> {
     }
   }
 
-  if (req.method === "PUT" && url.pathname.match(/^\/admin\/keys\/[^/]+$/)) {
+  if (req.method === "PUT" && url.pathname.match(/^\/api\/admin\/keys\/[^/]+$/)) {
     try {
       const key = url.pathname.split("/").pop()!;
       const { note, expiryDays, active } = await req.json();
@@ -265,7 +265,7 @@ async function handleKeyManagement(req: Request): Promise<Response> {
     }
   }
 
-  if (req.method === "GET" && url.pathname === "/admin/keys") {
+  if (req.method === "GET" && url.pathname === "/api/admin/keys") {
     const keys = await keyManager.listKeys();
     return addCorsHeaders(new Response(JSON.stringify({
       total: keys.length,
@@ -296,7 +296,7 @@ async function handleSystemKeyManagement(req: Request): Promise<Response> {
 
   const url = new URL(req.url);
   const pathParts = url.pathname.split('/');
-  const key = pathParts[3]; // /admin/system-keys/:key
+  const key = pathParts[4]; // /api/admin/system-keys/:key
 
   try {
     // 处理 OPTIONS 请求
@@ -356,7 +356,7 @@ async function handleSystemKeyManagement(req: Request): Promise<Response> {
 
     // 激活/停用指定的 key
     if (req.method === "PUT") {
-      const action = pathParts[4]; // activate or deactivate
+      const action = pathParts[5]; // activate or deactivate
       let success = false;
       
       if (action === "activate") {
@@ -377,7 +377,7 @@ async function handleSystemKeyManagement(req: Request): Promise<Response> {
     }
 
     // 获取指定 key 的错误统计
-    if (req.method === "GET" && pathParts[4] === "stats") {
+    if (req.method === "GET" && pathParts[5] === "stats") {
       const stats = await systemKeyManager.getErrorStats(key);
       return addCorsHeaders(new Response(JSON.stringify(stats), {
         status: 200,
@@ -461,12 +461,12 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   // System Key 管理相关的路由
-  if (url.pathname.startsWith("/admin/system-keys")) {
+  if (url.pathname.startsWith("/api/admin/system-keys")) {
     return handleSystemKeyManagement(req);
   }
 
   // Key 管理相关的路由
-  if (url.pathname.startsWith("/admin/keys")) {
+  if (url.pathname.startsWith("/api/admin/keys")) {
     return handleKeyManagement(req);
   }
 
