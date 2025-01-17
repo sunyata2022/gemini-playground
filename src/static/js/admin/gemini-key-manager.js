@@ -1,192 +1,200 @@
 // Gemini Key管理模块
 import { getApi } from './core.js';
 
-class GeminiKeyManager {
-    constructor() {
-        this.searchInput = document.getElementById('searchGeminiInput');
-        this.clearSearchBtn = document.getElementById('clearGeminiSearch');
-        this.keysList = document.getElementById('geminiKeysListContent');
-        this.addKeyBtn = document.getElementById('createGeminiKeyBtn');
+export function initGeminiKeyManager(elements) {
+    const manager = {
+        searchInput: document.getElementById('searchGeminiInput'),
+        clearSearchBtn: document.getElementById('clearGeminiSearch'),
+        keysList: document.getElementById('geminiKeysListContent'),
+        addKeyBtn: document.getElementById('createGeminiKeyBtn'),
         
         // 添加对话框元素
-        this.createDialog = document.getElementById('createGeminiKeyDialog');
-        this.geminiKeyInput = document.getElementById('geminiKey');
-        this.geminiAccountInput = document.getElementById('geminiAccount');
-        this.geminiKeyNoteInput = document.getElementById('geminiKeyNote');
-        this.cancelCreateBtn = document.getElementById('cancelCreateGeminiKey');
-        this.confirmCreateBtn = document.getElementById('confirmCreateGeminiKey');
+        createDialog: document.getElementById('createGeminiKeyDialog'),
+        geminiKeyInput: document.getElementById('geminiKey'),
+        geminiAccountInput: document.getElementById('geminiAccount'),
+        geminiKeyNoteInput: document.getElementById('geminiKeyNote'),
+        cancelCreateBtn: document.getElementById('cancelCreateGeminiKey'),
+        confirmCreateBtn: document.getElementById('confirmCreateGeminiKey'),
         
         // 获取全局元素
-        this.elements = {
-            messageDialog: document.getElementById('messageDialog'),
-            messageText: document.getElementById('messageText'),
-            confirmMessage: document.getElementById('confirmMessage')
-        };
+        messageDialog: document.getElementById('messageDialog'),
+        messageText: document.getElementById('messageText'),
+        confirmMessage: document.getElementById('confirmMessage'),
+    };
 
-        this.api = getApi();
-        this.initEventListeners();
-        this.loadKeys();
-    }
-
-    initEventListeners() {
-        // 搜索框事件
-        this.searchInput.addEventListener('input', () => {
-            this.handleSearch();
-            this.toggleClearButton();
-        });
-
-        this.clearSearchBtn.addEventListener('click', () => {
-            this.clearSearch();
-        });
-
-        // 添加Key按钮事件
-        this.addKeyBtn.addEventListener('click', () => {
-            this.showCreateDialog();
-        });
-
-        // 添加对话框事件
-        this.cancelCreateBtn.addEventListener('click', () => {
-            this.hideCreateDialog();
-        });
-
-        this.confirmCreateBtn.addEventListener('click', () => {
-            this.handleCreateKey();
-        });
-    }
-
-    toggleClearButton() {
-        this.clearSearchBtn.style.display = this.searchInput.value ? 'block' : 'none';
-    }
-
-    clearSearch() {
-        this.searchInput.value = '';
-        this.toggleClearButton();
-        this.loadKeys(); // 重新加载所有keys
-    }
-
-    handleSearch() {
-        const searchTerm = this.searchInput.value.toLowerCase();
-        const keys = Array.from(this.keysList.children);
+    // 初始化事件监听
+    initEventListeners(manager);
         
-        keys.forEach(keyElement => {
-            const keyText = keyElement.textContent.toLowerCase();
-            const shouldShow = keyText.includes(searchTerm);
-            keyElement.style.display = shouldShow ? 'block' : 'none';
-        });
-    }
-
-    async loadKeys() {
-        try {
-            const keys = await this.api.getGeminiKeys();
-            this.renderKeys(keys);
-        } catch (error) {
-            console.error('Error loading Gemini keys:', error);
-            this.showMessage('加载Gemini keys失败', 'error');
+    // 监听认证成功事件
+    document.addEventListener('auth:success', () => {
+        // 只在当前 tab 是 gemini 时加载数据
+        if (document.querySelector('.tab-button[data-tab="gemini"]').classList.contains('active')) {
+            loadKeys(manager);
         }
-    }
+    });
 
-    renderKeys(keys) {
-        this.keysList.innerHTML = '';
-        
-        if (keys.length === 0) {
-            this.keysList.innerHTML = '<div class="no-keys">暂无Gemini Keys</div>';
-            return;
+    // 监听 tab 切换事件
+    document.addEventListener('tab:changed', (e) => {
+        if (e.detail.tabId === 'gemini') {
+            loadKeys(manager);
         }
+    });
+}
 
-        keys.forEach(key => {
-            const keyElement = document.createElement('div');
-            keyElement.className = 'key-item';
-            keyElement.innerHTML = `
-                <div class="key-info">
-                    <div class="key-main">
-                        <span class="key-text">${key.key.slice(0, 4)}...${key.key.slice(-4)}</span>
-                        <span class="key-account">${key.account}</span>
-                    </div>
-                    <div class="key-details">
-                        <span class="key-error-count">错误次数: ${key.errorCount}</span>
-                        ${key.lastErrorAt ? `<span class="key-last-error">最后错误: ${new Date(key.lastErrorAt).toLocaleString()}</span>` : ''}
-                        ${key.note ? `<span class="key-note">备注: ${key.note}</span>` : ''}
-                    </div>
-                </div>
-                <div class="key-actions">
-                    <button class="action-button edit" data-key="${key.key}">编辑</button>
-                    <button class="action-button delete" data-key="${key.key}">删除</button>
-                </div>
-            `;
+function initEventListeners(manager) {
+    // 搜索框事件
+    manager.searchInput.addEventListener('input', () => {
+        handleSearch(manager);
+        toggleClearButton(manager);
+    });
 
-            // 添加编辑和删除事件监听
-            const editBtn = keyElement.querySelector('.edit');
-            const deleteBtn = keyElement.querySelector('.delete');
+    manager.clearSearchBtn.addEventListener('click', () => {
+        clearSearch(manager);
+    });
 
-            editBtn.addEventListener('click', () => this.editKey(key));
-            deleteBtn.addEventListener('click', () => this.deleteKey(key));
+    // 添加Key按钮事件
+    manager.addKeyBtn.addEventListener('click', () => {
+        showCreateDialog(manager);
+    });
 
-            this.keysList.appendChild(keyElement);
-        });
-    }
+    // 添加对话框事件
+    manager.cancelCreateBtn.addEventListener('click', () => {
+        hideCreateDialog(manager);
+    });
 
-    editKey(key) {
-        // TODO: 实现编辑功能
-    }
+    manager.confirmCreateBtn.addEventListener('click', () => {
+        handleCreateKey(manager);
+    });
+}
 
-    async deleteKey(key) {
-        // TODO: 实现删除功能
-    }
+function toggleClearButton(manager) {
+    manager.clearSearchBtn.style.display = manager.searchInput.value ? 'block' : 'none';
+}
 
-    showCreateDialog() {
-        // 清空输入框
-        this.geminiKeyInput.value = '';
-        this.geminiAccountInput.value = '';
-        this.geminiKeyNoteInput.value = '';
-        
-        // 显示对话框
-        this.createDialog.style.display = 'flex';
-    }
+function clearSearch(manager) {
+    manager.searchInput.value = '';
+    toggleClearButton(manager);
+    loadKeys(manager); // 重新加载所有keys
+}
 
-    hideCreateDialog() {
-        this.createDialog.style.display = 'none';
-    }
+function handleSearch(manager) {
+    const searchTerm = manager.searchInput.value.toLowerCase();
+    const keys = Array.from(manager.keysList.children);
+    
+    keys.forEach(keyElement => {
+        const keyText = keyElement.textContent.toLowerCase();
+        const shouldShow = keyText.includes(searchTerm);
+        keyElement.style.display = shouldShow ? 'block' : 'none';
+    });
+}
 
-    showMessage(message, type = 'info') {
-        const messageText = this.elements.messageText;
-        const messageDialog = this.elements.messageDialog;
-        
-        messageText.textContent = message;
-        messageDialog.className = `dialog-overlay message-${type}`;
-        messageDialog.style.display = 'flex';
-
-        // 自动关闭
-        setTimeout(() => {
-            messageDialog.style.display = 'none';
-        }, 3000);
-    }
-
-    async handleCreateKey() {
-        const key = this.geminiKeyInput.value.trim();
-        const account = this.geminiAccountInput.value.trim();
-        const note = this.geminiKeyNoteInput.value.trim();
-
-        if (!key) {
-            this.showMessage('请输入Gemini Key', 'error');
-            return;
-        }
-
-        if (!account) {
-            this.showMessage('请输入账号', 'error');
-            return;
-        }
-
-        try {
-            await this.api.addGeminiKey(key, account, note);
-            this.showMessage('添加Gemini Key成功');
-            this.hideCreateDialog();
-            this.loadKeys(); // 重新加载列表
-        } catch (error) {
-            console.error('Error adding Gemini key:', error);
-            this.showMessage('添加Gemini Key失败', 'error');
-        }
+async function loadKeys(manager) {
+    try {
+        const api = getApi();
+        const keys = await api.getGeminiKeys();
+        renderKeys(manager, keys);
+    } catch (error) {
+        console.error('Error loading Gemini keys:', error);
+        showMessage(manager, '加载Gemini keys失败', 'error');
     }
 }
 
-// 导出模块
-export default GeminiKeyManager;
+function renderKeys(manager, keys) {
+    manager.keysList.innerHTML = '';
+    
+    if (keys.length === 0) {
+        manager.keysList.innerHTML = '<div class="no-keys">暂无Gemini Keys</div>';
+        return;
+    }
+
+    keys.forEach(key => {
+        const keyElement = document.createElement('div');
+        keyElement.className = 'key-item';
+        keyElement.innerHTML = `
+            <div class="key-info">
+                <div class="key-main">
+                    <span class="key-text">${key.key.slice(0, 4)}...${key.key.slice(-4)}</span>
+                    <span class="key-account">${key.account}</span>
+                </div>
+                <div class="key-details">
+                    <span class="key-error-count">错误次数: ${key.errorCount}</span>
+                    ${key.lastErrorAt ? `<span class="key-last-error">最后错误: ${new Date(key.lastErrorAt).toLocaleString()}</span>` : ''}
+                    ${key.note ? `<span class="key-note">备注: ${key.note}</span>` : ''}
+                </div>
+            </div>
+            <div class="key-actions">
+                <button class="action-button edit" data-key="${key.key}">编辑</button>
+                <button class="action-button delete" data-key="${key.key}">删除</button>
+            </div>
+        `;
+
+        // 添加编辑和删除事件监听
+        const editBtn = keyElement.querySelector('.edit');
+        const deleteBtn = keyElement.querySelector('.delete');
+
+        editBtn.addEventListener('click', () => editKey(key));
+        deleteBtn.addEventListener('click', () => deleteKey(key));
+
+        manager.keysList.appendChild(keyElement);
+    });
+}
+
+function editKey(key) {
+    // TODO: 实现编辑功能
+}
+
+function deleteKey(key) {
+    // TODO: 实现删除功能
+}
+
+function showMessage(manager, message, type = 'info') {
+    manager.messageText.textContent = message;
+    manager.messageDialog.className = `dialog-overlay message-${type}`;
+    manager.messageDialog.style.display = 'flex';
+
+    // 自动关闭
+    setTimeout(() => {
+        manager.messageDialog.style.display = 'none';
+    }, 3000);
+}
+
+function showCreateDialog(manager) {
+    // 清空输入框
+    manager.geminiKeyInput.value = '';
+    manager.geminiAccountInput.value = '';
+    manager.geminiKeyNoteInput.value = '';
+    
+    // 显示对话框
+    manager.createDialog.style.display = 'flex';
+}
+
+function hideCreateDialog(manager) {
+    manager.createDialog.style.display = 'none';
+}
+
+async function handleCreateKey(manager) {
+    const key = manager.geminiKeyInput.value.trim();
+    const account = manager.geminiAccountInput.value.trim();
+    const note = manager.geminiKeyNoteInput.value.trim();
+
+    if (!key) {
+        showMessage(manager, '请输入Gemini Key', 'error');
+        return;
+    }
+
+    if (!account) {
+        showMessage(manager, '请输入账号', 'error');
+        return;
+    }
+
+    try {
+        const api = getApi();  // 每次调用时获取最新的 api 实例
+        await api.addGeminiKey(key, account, note);
+        showMessage(manager, '添加Gemini Key成功');
+        hideCreateDialog(manager);
+        loadKeys(manager); // 重新加载列表
+    } catch (error) {
+        console.error('Error adding Gemini key:', error);
+        showMessage(manager, '添加Gemini Key失败', 'error');
+    }
+}

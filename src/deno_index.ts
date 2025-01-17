@@ -285,22 +285,19 @@ async function handleKeyManagement(req: Request): Promise<Response> {
 
 // System Key 管理相关的路由
 async function handleSystemKeyManagement(req: Request): Promise<Response> {
-  // 验证管理员token
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return addCorsHeaders(new Response('Unauthorized', { status: 401 }));
-  }
-
-  const token = authHeader.split(' ')[1];
-  if (!validateAdminToken(token)) {
-    return addCorsHeaders(new Response('Invalid admin token', { status: 401 }));
+  // 验证管理员token，保持和 handleKeyManagement 一致的处理方式
+  if (!validateAdminToken(req.headers.get("Authorization"))) {
+    return addCorsHeaders(new Response("Unauthorized", { 
+      status: 401,
+      headers: { "content-type": "application/json" }
+    }));
   }
 
   const url = new URL(req.url);
   const method = req.method;
 
   try {
-    if (method === 'GET' && url.pathname === '/admin/system-keys') {
+    if (method === 'GET' && url.pathname === '/api/admin/system-keys') {
       const keys = await systemKeyManager.getAllKeys();
       return addCorsHeaders(new Response(JSON.stringify(keys), {
         status: 200,
@@ -308,7 +305,7 @@ async function handleSystemKeyManagement(req: Request): Promise<Response> {
       }));
     }
 
-    if (method === 'POST' && url.pathname === '/admin/system-keys') {
+    if (method === 'POST' && url.pathname === '/api/admin/system-keys') {
       const data = await req.json();
       const { key, account, note } = data;
 

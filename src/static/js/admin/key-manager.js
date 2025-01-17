@@ -60,7 +60,19 @@ export function initKeyManager(elements) {
     confirmEdit?.addEventListener('click', () => updateKey(elements));
 
     // 监听认证成功事件
-    document.addEventListener('auth:success', () => loadKeys(elements));
+    document.addEventListener('auth:success', () => {
+        // 只在当前 tab 是 keys 时加载数据
+        if (document.querySelector('.tab-button[data-tab="keys"]').classList.contains('active')) {
+            loadKeys(elements);
+        }
+    });
+
+    // 监听 tab 切换事件
+    document.addEventListener('tab:changed', (e) => {
+        if (e.detail.tabId === 'keys') {
+            loadKeys(elements);
+        }
+    });
 
     // 监听搜索事件
     document.addEventListener('search:changed', (e) => {

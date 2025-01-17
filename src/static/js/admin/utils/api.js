@@ -14,7 +14,8 @@ export class ApiClient {
         };
 
         if (this.token) {
-            headers['Authorization'] = this.token;
+            // 如果 token 已经有 Bearer 前缀就直接用，否则添加前缀
+            headers['Authorization'] = this.token.startsWith('Bearer ') ? this.token : `Bearer ${this.token}`;
         }
 
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {

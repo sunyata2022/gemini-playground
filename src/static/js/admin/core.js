@@ -48,25 +48,24 @@ export async function initializeApp() {
         { initKeyManager },
         { initDialogs },
         { initTabs },
-        { initSearch }
+        { initSearch },
+        { initGeminiKeyManager }
     ] = await Promise.all([
         import('./auth.js'),
         import('./key-manager.js'),
         import('./ui/dialogs.js'),
         import('./ui/tabs.js'),
-        import('./ui/search.js')
+        import('./ui/search.js'),
+        import('./gemini-key-manager.js')
     ]);
 
-    // 初始化Gemini Key管理模块
-    const { default: GeminiKeyManager } = await import('./gemini-key-manager.js');
-    new GeminiKeyManager();
-
-    // 初始化其他模块
+    // 初始化所有模块
     await initAuth(elements);
     await initKeyManager(elements);
     initDialogs(elements);
     initTabs();
     initSearch(elements);
+    initGeminiKeyManager(elements);
 
     return elements;
 }
