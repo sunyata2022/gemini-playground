@@ -1,5 +1,5 @@
 import { KeyManager, KeySource } from "./key_manager.ts";
-import { SystemKeyManager } from "./system_key_manager.ts";
+import { GeminiKeyManager } from "./gemini_key_manager.ts";
 import { ADMIN_TOKEN, validateAdminToken } from "./config.ts";
 
 const getContentType = (path: string): string => {
@@ -19,10 +19,10 @@ const getContentType = (path: string): string => {
 
 // 初始化 managers
 const keyManager = new KeyManager();
-const systemKeyManager = new SystemKeyManager();
+const geminiKeyManager = new GeminiKeyManager();
 await Promise.all([
   keyManager.init(),
-  systemKeyManager.init()
+  geminiKeyManager.init()
 ]);
 
 // 提取共同的 API Key 验证逻辑
@@ -75,10 +75,10 @@ async function handleWebSocket(req: Request): Promise<Response> {
   
   // 使用系统 Key 创建新的目标 URL
   const targetUrl = new URL(`wss://generativelanguage.googleapis.com${url.pathname}`);
-  const systemKey = await systemKeyManager.getNextKey();
-  targetUrl.searchParams.set("key", systemKey);
-  console.log('WebSocket connecting to Gemini with system key:', 
-    `${systemKey.slice(0, 4)}...${systemKey.slice(-4)}`);
+  const geminiKey = await geminiKeyManager.getNextKey();
+  targetUrl.searchParams.set("key", geminiKey);
+  console.log('WebSocket connecting to Gemini with Gemini key:', 
+    `${geminiKey.slice(0, 4)}...${geminiKey.slice(-4)}`);
   
   const { socket: clientWs, response } = Deno.upgradeWebSocket(req);
   const targetWs = new WebSocket(targetUrl.toString());
@@ -160,11 +160,11 @@ async function handleAPIRequest(req: Request): Promise<Response> {
 
     // 转发到 Gemini API
     const targetUrl = new URL(`https://generativelanguage.googleapis.com${url.pathname}${url.search}`);
-    const systemKey = await systemKeyManager.getNextKey();
+    const geminiKey = await geminiKeyManager.getNextKey();
   
     // 创建新的请求头
     const newHeaders = new Headers(req.headers);
-    newHeaders.set("Authorization", `Bearer ${systemKey}`);
+    newHeaders.set("Authorization", `Bearer ${geminiKey}`);
   
     try {
       const response = await fetch(targetUrl.toString(), {
@@ -174,7 +174,7 @@ async function handleAPIRequest(req: Request): Promise<Response> {
       });
 
       if (!response.ok) {
-        await systemKeyManager.recordError(systemKey);
+        await geminiKeyManager.recordError(geminiKey);
       }
 
       return addCorsHeaders(new Response(response.body, {
@@ -183,7 +183,7 @@ async function handleAPIRequest(req: Request): Promise<Response> {
         headers: response.headers
       }));
     } catch (error) {
-      await systemKeyManager.recordError(systemKey);
+      await geminiKeyManager.recordError(geminiKey);
       throw error;
     }
   } catch (error) {
@@ -283,8 +283,8 @@ async function handleKeyManagement(req: Request): Promise<Response> {
   }));
 }
 
-// System Key 管理相关的路由
-async function handleSystemKeyManagement(req: Request): Promise<Response> {
+// Gemini Key 管理相关的路由
+async function handleGeminiKeyManagement(req: Request): Promise<Response> {
   // 验证管理员token，保持和 handleKeyManagement 一致的处理方式
   if (!validateAdminToken(req.headers.get("Authorization"))) {
     return addCorsHeaders(new Response("Unauthorized", { 
@@ -297,43 +297,72 @@ async function handleSystemKeyManagement(req: Request): Promise<Response> {
   const method = req.method;
 
   try {
-    if (method === 'GET' && url.pathname === '/api/admin/system-keys') {
-      const keys = await systemKeyManager.listKeys();
+    if (method === 'GET' && url.pathname === '/api/admin/gemini-keys') {
+      const keys = await geminiKeyManager.listKeys();
       return addCorsHeaders(new Response(JSON.stringify(keys), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       }));
     }
 
-    if (method === 'POST' && url.pathname === '/api/admin/system-keys') {
+    if (method === 'POST' && url.pathname === '/api/admin/gemini-keys') {
       const data = await req.json();
       const { key, account, note } = data;
 
       if (!key || !account) {
-        return addCorsHeaders(new Response(JSON.stringify({
-          error: '缺少必要字段'
-        }), { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }));
+        return addCorsHeaders(new Response('Missing required fields', { status: 400 }));
       }
 
-      try {
-        await systemKeyManager.addKey(key, account, note);
-        return addCorsHeaders(new Response(JSON.stringify({
-          message: 'Key添加成功'
-        }), { 
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        }));
-      } catch (error) {
-        return addCorsHeaders(new Response(JSON.stringify({
-          error: error instanceof Error ? error.message : '添加Key失败'
-        }), { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }));
+      await geminiKeyManager.addKey(key, account, note);
+      return addCorsHeaders(new Response('Key added successfully', { status: 200 }));
+    }
+
+    if (method === 'PUT' && url.pathname.startsWith('/api/admin/gemini-keys/')) {
+      const key = url.pathname.split('/').pop();
+      const { action, account, note } = await req.json();
+      
+      if (!key) {
+        return addCorsHeaders(new Response('Missing key', { status: 400 }));
       }
+
+      // 更新状态
+      if (action) {
+        if (action === 'activate') {
+          if (!await geminiKeyManager.activateKey(key)) {
+            return addCorsHeaders(new Response('Key not found', { status: 404 }));
+          }
+        } else if (action === 'deactivate') {
+          if (!await geminiKeyManager.deactivateKey(key)) {
+            return addCorsHeaders(new Response('Key not found', { status: 404 }));
+          }
+        } else {
+          return addCorsHeaders(new Response('Invalid action', { status: 400 }));
+        }
+      }
+
+      // 更新信息
+      if (account !== undefined || note !== undefined) {
+        if (!await geminiKeyManager.updateKeyInfo(key, { account, note })) {
+          return addCorsHeaders(new Response('Key not found', { status: 404 }));
+        }
+      }
+
+      return addCorsHeaders(new Response('Key updated successfully', { status: 200 }));
+    }
+
+    if (method === 'DELETE' && url.pathname.startsWith('/api/admin/gemini-keys/')) {
+      const key = url.pathname.split('/').pop();
+      
+      if (!key) {
+        return addCorsHeaders(new Response('Missing key', { status: 400 }));
+      }
+
+      const success = await geminiKeyManager.removeKey(key);
+      if (!success) {
+        return addCorsHeaders(new Response('Key not found', { status: 404 }));
+      }
+
+      return addCorsHeaders(new Response('Key deleted successfully', { status: 200 }));
     }
 
     return addCorsHeaders(new Response('Not Found', { status: 404 }));
@@ -405,9 +434,9 @@ async function handleRequest(req: Request): Promise<Response> {
     }));
   }
 
-  // System Key 管理相关的路由
-  if (url.pathname.startsWith("/api/admin/system-keys")) {
-    return handleSystemKeyManagement(req);
+  // Gemini Key 管理相关的路由
+  if (url.pathname.startsWith("/api/admin/gemini-keys")) {
+    return handleGeminiKeyManagement(req);
   }
 
   // Key 管理相关的路由

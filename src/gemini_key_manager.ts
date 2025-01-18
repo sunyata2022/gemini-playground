@@ -1,4 +1,4 @@
-interface SystemKeyInfo {
+interface GeminiKeyInfo {
     key: string;          // Gemini API key
     account: string;      // 对应的 Gemini 账号
     errorCount: number;   // 错误计数
@@ -6,14 +6,14 @@ interface SystemKeyInfo {
     note?: string;        // 备注信息
 }
 
-export class SystemKeyManager {
+export class GeminiKeyManager {
     private kv: Deno.Kv;
     private activeKeys: string[] = [];    // 可用的 keys
     private inactiveKeys: string[] = [];  // 不可用的 keys
     private currentIndex: number = 0;
-    private readonly KV_ACTIVE_KEYS = ["system_keys", "active"];    // 活跃 key 列表
-    private readonly KV_INACTIVE_KEYS = ["system_keys", "inactive"]; // 非活跃 key 列表
-    private readonly KV_KEY_INFO = "system_key_info:";              // key 详情
+    private readonly KV_ACTIVE_KEYS = ["gemini_keys", "active"];    // 活跃 key 列表
+    private readonly KV_INACTIVE_KEYS = ["gemini_keys", "inactive"]; // 非活跃 key 列表
+    private readonly KV_KEY_INFO = "gemini_key_info:";              // key 详情
     private initialized = false;
 
     constructor() {
@@ -30,28 +30,28 @@ export class SystemKeyManager {
     // 核心方法：获取下一个可用的 key
     async getNextKey(): Promise<string> {
         if (!this.initialized) {
-            throw new Error("SystemKeyManager not initialized");
+            throw new Error("GeminiKeyManager not initialized");
         }
 
         if (this.activeKeys.length === 0) {
-            throw new Error("No active system keys available");
+            throw new Error("No active Gemini keys available");
         }
 
         this.currentIndex = (this.currentIndex + 1) % this.activeKeys.length;
         return this.activeKeys[this.currentIndex];
     }
 
-    // 添加新的 system key
+    // 添加新的 Gemini key
     async addKey(key: string, account: string, note?: string): Promise<void> {
         if (!this.initialized) {
-            throw new Error("SystemKeyManager not initialized");
+            throw new Error("GeminiKeyManager not initialized");
         }
 
         if (this.activeKeys.includes(key) || this.inactiveKeys.includes(key)) {
             throw new Error("Key already exists");
         }
 
-        const keyInfo: SystemKeyInfo = {
+        const keyInfo: GeminiKeyInfo = {
             key,
             account,
             errorCount: 0,
@@ -68,7 +68,7 @@ export class SystemKeyManager {
         await atomic.commit();
     }
 
-    // 删除 system key
+    // 删除 Gemini key
     async removeKey(key: string): Promise<boolean> {
         const activeIndex = this.activeKeys.indexOf(key);
         const inactiveIndex = this.inactiveKeys.indexOf(key);
@@ -142,8 +142,8 @@ export class SystemKeyManager {
     }
 
     // 获取单个 key 的详细信息
-    async getKeyInfo(key: string): Promise<SystemKeyInfo | null> {
-        const result = await this.kv.get<SystemKeyInfo>([this.KV_KEY_INFO, key]);
+    async getKeyInfo(key: string): Promise<GeminiKeyInfo | null> {
+        const result = await this.kv.get<GeminiKeyInfo>([this.KV_KEY_INFO, key]);
         return result.value;
     }
 
@@ -158,19 +158,19 @@ export class SystemKeyManager {
     }
 
     // 获取所有 keys 的详细信息
-    async listKeys(): Promise<{ active: SystemKeyInfo[]; inactive: SystemKeyInfo[] }> {
-        const active: SystemKeyInfo[] = [];
-        const inactive: SystemKeyInfo[] = [];
+    async listKeys(): Promise<{ active: GeminiKeyInfo[], inactive: GeminiKeyInfo[] }> {
+        const active: GeminiKeyInfo[] = [];
+        const inactive: GeminiKeyInfo[] = [];
         
         // 获取所有 key 的信息
         for (const key of this.activeKeys) {
-            const info = await this.getKeyInfo(key);
-            if (info) active.push(info);
+            const keyInfo = await this.getKeyInfo(key);
+            if (keyInfo) active.push(keyInfo);
         }
         
         for (const key of this.inactiveKeys) {
-            const info = await this.getKeyInfo(key);
-            if (info) inactive.push(info);
+            const keyInfo = await this.getKeyInfo(key);
+            if (keyInfo) inactive.push(keyInfo);
         }
         
         return { active, inactive };
@@ -185,7 +185,7 @@ export class SystemKeyManager {
         status: 'active' | 'inactive';
     }>> {
         const allKeys = await this.listKeys();
-        return allKeys.active.concat(allKeys.inactive)
+        return allKeys
             .filter(k => k.errorCount > 0)
             .map(({ key, account, errorCount, lastErrorAt, status }) => ({
                 key,
@@ -204,5 +204,20 @@ export class SystemKeyManager {
         
         this.activeKeys = activeResult.value || [];
         this.inactiveKeys = inactiveResult.value || [];
+    }
+
+    // 更新key信息
+    async updateKeyInfo(key: string, updates: { account?: string; note?: string }): Promise<boolean> {
+        const keyInfo = await this.getKeyInfo(key);
+        if (!keyInfo) return false;
+
+        const updatedInfo: GeminiKeyInfo = {
+            ...keyInfo,
+            ...(updates.account && { account: updates.account }),
+            ...(updates.note !== undefined && { note: updates.note })
+        };
+
+        await this.kv.set([this.KV_KEY_INFO, key], updatedInfo);
+        return true;
     }
 }
