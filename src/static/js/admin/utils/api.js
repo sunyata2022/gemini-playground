@@ -49,24 +49,11 @@ export class ApiClient {
         return this.request('/api/admin/keys');
     }
 
-    // 创建新密钥
+    // 创建新的密钥
     async createKey(validityDays, note) {
         return this.request('/api/admin/keys', {
             method: 'POST',
             body: JSON.stringify({ validityDays, note })
-        });
-    }
-
-    // 获取所有Gemini Keys
-    async getGeminiKeys() {
-        return this.request('/api/admin/system-keys');
-    }
-
-    // 添加Gemini Key
-    async addGeminiKey(data) {
-        return this.request('/api/admin/system-keys', {
-            method: 'POST',
-            body: JSON.stringify(data)
         });
     }
 
@@ -77,4 +64,27 @@ export class ApiClient {
             body: JSON.stringify(updates)
         });
     }
+
+    // 获取所有Gemini密钥
+    async getGeminiKeys() {
+        return this.request('/api/admin/gemini-keys');
+    }
+
+    // 添加Gemini密钥
+    async addGeminiKey(key, account, note) {
+        return this.request('/api/admin/gemini-keys', {
+            method: 'POST',
+            body: JSON.stringify({ key, account, note })
+        });
+    }
+
+    // 删除Gemini密钥
+    async deleteGeminiKey(key) {
+        return this.request(`/api/admin/gemini-keys/${key}`, {
+            method: 'DELETE'
+        });
+    }
 }
+
+// 创建并导出默认的API客户端实例
+export const api = new ApiClient();

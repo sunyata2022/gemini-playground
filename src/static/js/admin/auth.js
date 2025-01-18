@@ -1,14 +1,12 @@
-import { getApi } from './core.js';
-import { showMessageDialog } from './ui/dialogs.js';
+import { api } from './utils/api.js';
+import { showDialog, hideDialog } from './ui/dialogs.js';
 
 // 初始化认证模块
-export function initAuth(elements) {
-    if (!elements.authDialog || !elements.mainContent || !elements.adminToken || !elements.confirmAuth) {
-        console.error('Missing required elements for auth module', elements);
-        return;
-    }
-
-    const { authDialog, mainContent, adminToken, confirmAuth } = elements;
+export async function initAuth() {
+    const authDialog = document.getElementById('authDialog');
+    const mainContent = document.getElementById('mainContent');
+    const adminToken = document.getElementById('adminToken');
+    const confirmAuth = document.getElementById('confirmAuth');
 
     // Auth related events
     authDialog.addEventListener('click', (e) => {
@@ -19,74 +17,72 @@ export function initAuth(elements) {
     });
 
     adminToken.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') authenticate(elements);
+        if (e.key === 'Enter') authenticate();
     });
 
-    confirmAuth.addEventListener('click', () => authenticate(elements));
+    confirmAuth.addEventListener('click', () => authenticate());
 
     // Check if already logged in
     const token = sessionStorage.getItem('adminToken');
     if (token) {
-        verifyStoredToken(elements);
+        return verifyStoredToken();
     } else {
-        showAuthDialog(elements);
+        showAuthDialog();
     }
 }
 
 // 验证已存储的 token
-async function verifyStoredToken(elements) {
+async function verifyStoredToken() {
     try {
-        const api = getApi();
+        const token = sessionStorage.getItem('adminToken');
+        api.token = token;
         const data = await api.verifyToken();
         
         if (data.success) {
-            showMainContent(elements);
+            hideDialog('authDialog');
+            return true;
         } else {
             sessionStorage.removeItem('adminToken');
-            showAuthDialog(elements);
+            showAuthDialog();
+            return false;
         }
     } catch (error) {
         sessionStorage.removeItem('adminToken');
-        showAuthDialog(elements);
+        showAuthDialog();
+        return false;
     }
 }
 
 // 显示认证对话框
-export function showAuthDialog(elements) {
-    elements.authDialog.style.display = 'flex';
-    elements.mainContent.style.display = 'none';
-    elements.adminToken.value = '';
-    elements.adminToken.focus();
-}
-
-// 显示主内容
-function showMainContent(elements) {
-    elements.authDialog.style.display = 'none';
-    elements.mainContent.style.display = 'block';
-    // Trigger initial key load
-    document.dispatchEvent(new CustomEvent('auth:success'));
+function showAuthDialog() {
+    showDialog('authDialog');
 }
 
 // 认证过程
-async function authenticate(elements) {
-    const token = elements.adminToken.value.trim();
+async function authenticate() {
+    const adminToken = document.getElementById('adminToken');
+    const token = adminToken.value.trim();
+    
     if (!token) {
-        showMessageDialog(elements, '请输入管理员令牌', 'error');
+        showDialog('messageDialog', { message: '请输入管理员令牌' });
         return;
     }
 
     try {
-        const api = getApi();
         api.token = token;
         const data = await api.verifyToken();
-
+        
         if (data.success) {
             sessionStorage.setItem('adminToken', token);
-            showMainContent(elements);
+            hideDialog('authDialog');
+            return true;
         } else {
-            showMessageDialog(elements, '管理员令牌无效', 'error');
+            showDialog('messageDialog', { message: '验证失败：无效的管理员令牌' });
+            return false;
         }
     } catch (error) {
-        showMessageDialog(elements, '验证过程中发生错误', 'error');
+        console.error('Authentication failed:', error);
+        showDialog('messageDialog', { message: '验证失败：' + error.message });
+        return false;
     }
 }

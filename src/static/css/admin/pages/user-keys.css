@@ -1,0 +1,237 @@
+/* User Keys Page Specific Styles */
+
+.keys-list {
+    position: relative;
+    min-height: 200px;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    padding: 16px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.keys-list-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.no-keys-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #666;
+}
+
+.key-item {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    transition: box-shadow 0.2s ease;
+}
+
+.key-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.key-item .key-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.key-item .key-info {
+    flex: 1;
+}
+
+.key-item .key-value-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.key-item .key-value {
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    color: #2c3e50;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    user-select: all;
+}
+
+.key-item .copy-icon-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.key-item .copy-icon {
+    cursor: pointer;
+    color: #666;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.key-item .copy-icon:hover {
+    color: #1a73e8;
+    background: #f0f4fe;
+}
+
+.key-item .copy-tooltip {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -25px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.key-item .copy-tooltip.show {
+    opacity: 1;
+    animation: fadeInOut 1.5s ease forwards;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.key-item .key-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 13px;
+    color: #666;
+    margin-top: 8px;
+}
+
+.key-item .key-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.key-item .key-meta .icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+
+.key-item .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.key-item .status-badge.active {
+    background-color: #e6f4ea;
+    color: #1e8e3e;
+}
+
+.key-item .status-badge.inactive {
+    background-color: #fce8e6;
+    color: #d93025;
+}
+
+.key-item .status-badge .icon {
+    width: 14px;
+    height: 14px;
+}
+
+.key-item .key-actions-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: 12px;
+}
+
+.key-item .key-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.key-item .key-actions button {
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+.key-item .action-icon {
+    cursor: pointer;
+    color: #666;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.key-item .action-icon:hover {
+    color: #1a73e8;
+    background: #f0f4fe;
+}
+
+.key-item .edit-icon:hover {
+    color: #188038;
+    background: #e6f4ea;
+}
+
+.key-item .key-note {
+    font-size: 13px;
+    color: #666;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+}
+
+.key-item .note-text {
+    color: #666;
+}
+
+.key-item .error-text {
+    color: #d93025;
+}
+
+.key-item .note-text,
+.key-item .error-text {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.key-item .note-text .icon,
+.key-item .error-text .icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.key-item .error-text .icon {
+    color: #d93025;
+}

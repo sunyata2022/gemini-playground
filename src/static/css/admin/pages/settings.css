@@ -1,0 +1,36 @@
+/* Settings Page Specific Styles */
+
+.settings-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.settings-section {
+    background: var(--card-background);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+.settings-section h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.settings-section p {
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.settings-form .form-group {
+    margin-bottom: 0;
+}

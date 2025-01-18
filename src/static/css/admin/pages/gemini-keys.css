@@ -1,0 +1,269 @@
+/* Gemini Keys Page Specific Styles */
+
+.gemini-keys-list {
+    position: relative;
+    min-height: 200px;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    padding: 16px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.gemini-keys-list-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.no-keys-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #666;
+}
+
+.gemini-key-item {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    transition: box-shadow 0.2s ease;
+}
+
+.gemini-key-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gemini-key-item .key-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.gemini-key-item .key-info {
+    flex: 1;
+}
+
+.gemini-key-item .key-value-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.gemini-key-item .key-value {
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    color: #2c3e50;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    user-select: all;
+}
+
+.gemini-key-item .copy-icon-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.gemini-key-item .copy-icon {
+    cursor: pointer;
+    color: #666;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.gemini-key-item .copy-icon:hover {
+    color: #1a73e8;
+    background: #f0f4fe;
+}
+
+.gemini-key-item .copy-tooltip {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -25px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.gemini-key-item .copy-tooltip.show {
+    opacity: 1;
+    animation: fadeInOut 1.5s ease forwards;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.gemini-key-item .account-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #2c3e50;
+    margin: 8px 0;
+}
+
+.gemini-key-item .account-info .icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+
+.gemini-key-item .key-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 13px;
+    color: #666;
+    margin-top: 8px;
+}
+
+.gemini-key-item .key-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gemini-key-item .key-meta .icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+
+.gemini-key-item .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.gemini-key-item .status-badge.active {
+    background-color: #e6f4ea;
+    color: #1e8e3e;
+}
+
+.gemini-key-item .status-badge.inactive {
+    background-color: #fce8e6;
+    color: #d93025;
+}
+
+.gemini-key-item .status-badge .icon {
+    width: 14px;
+    height: 14px;
+}
+
+.gemini-key-item .key-actions-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: 12px;
+}
+
+.gemini-key-item .action-icon {
+    cursor: pointer;
+    color: #666;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.gemini-key-item .action-icon:hover {
+    color: #1a73e8;
+    background: #f0f4fe;
+}
+
+.gemini-key-item .delete-icon:hover {
+    color: #d93025;
+    background: #fce8e6;
+}
+
+.gemini-key-item .key-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.gemini-key-item .key-actions button {
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+.gemini-key-item .note-text {
+    color: #666;
+}
+
+.gemini-key-item .error-text {
+    color: #d93025;
+}
+
+.gemini-key-item .note-text,
+.gemini-key-item .error-text {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gemini-key-item .note-text .icon,
+.gemini-key-item .error-text .icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.gemini-key-item .error-text .icon {
+    color: #d93025;
+}
+
+.gemini-key-item .key-note {
+    font-size: 13px;
+    color: #666;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+}
+
+.gemini-key-item .key-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #d93025;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #fce8e6;
+}
+
+.gemini-key-item .key-error .icon {
+    width: 16px;
+    height: 16px;
+    color: #d93025;
+}
