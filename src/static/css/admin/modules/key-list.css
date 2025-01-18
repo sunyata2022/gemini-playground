@@ -41,13 +41,24 @@
 .key-text {
     font-size: 0.95rem;
     line-height: 1.4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
 }
 
 .key-text strong {
     color: var(--secondary-color);
-    margin-right: 8px;
-    display: inline-block;
-    width: 50px;
+    flex-shrink: 0;
+    width: 80px;
+}
+
+.key-text span {
+    flex-grow: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .valid-key {
