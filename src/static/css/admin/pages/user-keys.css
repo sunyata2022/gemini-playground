@@ -16,6 +16,7 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    overflow: visible;
 }
 
 .no-keys-message {
@@ -138,27 +139,33 @@
 .key-item .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
-    padding: 2px 8px;
-    border-radius: 12px;
+    padding: 4px 8px;
+    border-radius: 16px;
     font-size: 12px;
-    font-weight: 500;
+    line-height: 16px;
     white-space: nowrap;
+    margin-left: 8px;
 }
 
-.key-item .status-badge.active {
+.key-item .status-badge .icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+}
+
+.key-item .status-badge.valid {
     background-color: #e6f4ea;
     color: #1e8e3e;
 }
 
-.key-item .status-badge.inactive {
+.key-item .status-badge.disabled {
     background-color: #fce8e6;
     color: #d93025;
 }
 
-.key-item .status-badge .icon {
-    width: 14px;
-    height: 14px;
+.key-item .status-badge.expired {
+    background-color: #fef7e0;
+    color: #f29900;
 }
 
 .key-item .key-actions-container {
@@ -195,6 +202,15 @@
 .key-item .edit-icon:hover {
     color: #188038;
     background: #e6f4ea;
+}
+
+.key-item .delete-icon {
+    color: #d93025;
+    margin-left: 8px;
+}
+
+.key-item .delete-icon:hover {
+    color: #a50e0e;
 }
 
 .key-item .key-note {
@@ -234,4 +250,73 @@
 
 .key-item .error-text .icon {
     color: #d93025;
+}
+
+/* 创建成功对话框 */
+.key-created-info {
+    margin: 20px 0;
+}
+
+.key-created-info .key-value-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.key-created-info .key-value {
+    font-family: monospace;
+    margin: 0 8px;
+    color: #1a73e8;
+}
+
+.key-created-info .validity-info {
+    display: flex;
+    align-items: center;
+}
+
+.key-created-info .copy-icon-container {
+    position: relative;
+    cursor: pointer;
+}
+
+.key-created-info .copy-icon {
+    width: 18px;
+    height: 18px;
+    color: #5f6368;
+}
+
+.key-created-info .copy-tooltip {
+    position: absolute;
+    display: none;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.key-created-info .copy-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+/* 危险按钮样式 */
+.primary-button.danger {
+    background-color: #d93025;
+    border-color: #d93025;
+}
+
+.primary-button.danger:hover {
+    background-color: #a50e0e;
+    border-color: #a50e0e;
 }

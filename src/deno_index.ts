@@ -275,6 +275,27 @@ async function handleKeyManagement(req: Request): Promise<Response> {
     }));
   }
 
+  if (req.method === "DELETE" && url.pathname.match(/^\/api\/admin\/keys\/[^/]+$/)) {
+    try {
+      const key = url.pathname.split("/").pop()!;
+      const success = await keyManager.deleteKey(key);
+      return addCorsHeaders(new Response(JSON.stringify({ 
+        success,
+        message: success ? "Key deleted successfully" : "Key not found"
+      }), {
+        status: success ? 200 : 404,
+        headers: { "content-type": "application/json" }
+      }));
+    } catch (error) {
+      return addCorsHeaders(new Response(JSON.stringify({ 
+        error: "Failed to delete key" 
+      }), {
+        status: 500,
+        headers: { "content-type": "application/json" }
+      }));
+    }
+  }
+
   return addCorsHeaders(new Response(JSON.stringify({ 
     error: "Not Found" 
   }), { 

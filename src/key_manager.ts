@@ -111,13 +111,24 @@ export class KeyManager {
 
     async listKeys(): Promise<Array<{ key: string; info: KeyInfo }>> {
         const keys: Array<{ key: string; info: KeyInfo }> = [];
-        const entries = this.kv.list<KeyInfo>({ prefix: [KV_KEY_PREFIX] });
+        const iter = this.kv.list<KeyInfo>({ prefix: [KV_KEY_PREFIX] });
         
-        for await (const entry of entries) {
+        for await (const entry of iter) {
             const key = entry.key[1] as string;
             keys.push({ key, info: entry.value });
         }
         
         return keys;
+    }
+
+    async deleteKey(key: string): Promise<boolean> {
+        const keyInfo = await this.kv.get<KeyInfo>([KV_KEY_PREFIX, key]);
+        
+        if (!keyInfo.value) {
+            return false;
+        }
+
+        await this.kv.delete([KV_KEY_PREFIX, key]);
+        return true;
     }
 }

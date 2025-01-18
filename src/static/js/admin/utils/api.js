@@ -65,6 +65,13 @@ export class ApiClient {
         });
     }
 
+    // 删除用户Key
+    async deleteKey(key) {
+        return this.request('/api/admin/keys/' + key, {
+            method: 'DELETE'
+        });
+    }
+
     // 获取所有Gemini密钥
     async getGeminiKeys() {
         return this.request('/api/admin/gemini-keys');
