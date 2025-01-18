@@ -4,6 +4,8 @@ interface GeminiKeyInfo {
     errorCount: number;   // 错误计数
     lastErrorAt?: number; // 最后一次错误时间
     note?: string;        // 备注信息
+    createdAt: number;    // 创建时间
+    updatedAt: number;    // 最后修改时间
 }
 
 export class GeminiKeyManager {
@@ -55,7 +57,9 @@ export class GeminiKeyManager {
             key,
             account,
             errorCount: 0,
-            note
+            note,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
         };
 
         // 原子操作：更新 active key 列表和 key 信息
@@ -154,6 +158,7 @@ export class GeminiKeyManager {
 
         keyInfo.errorCount++;
         keyInfo.lastErrorAt = Date.now();
+        keyInfo.updatedAt = Date.now();
         await this.kv.set([this.KV_KEY_INFO, key], keyInfo);
     }
 
@@ -214,7 +219,8 @@ export class GeminiKeyManager {
         const updatedInfo: GeminiKeyInfo = {
             ...keyInfo,
             ...(updates.account && { account: updates.account }),
-            ...(updates.note !== undefined && { note: updates.note })
+            ...(updates.note !== undefined && { note: updates.note }),
+            updatedAt: Date.now()
         };
 
         await this.kv.set([this.KV_KEY_INFO, key], updatedInfo);
