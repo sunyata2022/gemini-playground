@@ -1,5 +1,6 @@
 import { KeyManager, KeySource } from "./key_manager.ts";
 import { GeminiKeyManager } from "./gemini_key_manager.ts";
+import { RedeemManager } from "./redeem_manager.ts";
 import { ADMIN_TOKEN, validateAdminToken } from "./config.ts";
 
 const getContentType = (path: string): string => {
@@ -20,9 +21,11 @@ const getContentType = (path: string): string => {
 // 初始化 managers
 const keyManager = new KeyManager();
 const geminiKeyManager = new GeminiKeyManager();
+const redeemManager = new RedeemManager();
 await Promise.all([
   keyManager.init(),
-  geminiKeyManager.init()
+  geminiKeyManager.init(),
+  redeemManager.init()
 ]);
 
 // 提取共同的 API Key 验证逻辑
@@ -436,6 +439,105 @@ async function handleGeminiKeyManagement(req: Request): Promise<Response> {
   }
 }
 
+// 添加兑换码管理相关的路由
+async function handleRedeemManagement(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const adminToken = req.headers.get("Authorization")?.split(" ")[1];
+
+  // 管理员接口
+  if (url.pathname.startsWith("/api/admin/redeem")) {
+    if (!validateAdminToken(adminToken)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/admin/redeem/batch") {
+      const body = await req.json();
+      const { validityDays, count, note } = body;
+      
+      if (!validityDays || !count || count <= 0) {
+        return new Response("Invalid parameters", { status: 400 });
+      }
+
+      const batch = await redeemManager.createBatch(validityDays, count, note);
+      return new Response(JSON.stringify(batch), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/admin/redeem/batches") {
+      const batches = await redeemManager.getAllBatches();
+      return new Response(JSON.stringify(batches), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/api/admin/redeem/batch/")) {
+      const batchId = url.pathname.split("/").pop();
+      if (!batchId) {
+        return new Response("Invalid batch ID", { status: 400 });
+      }
+
+      const codes = await redeemManager.getCodesInBatch(batchId);
+      return new Response(JSON.stringify(codes), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/redeem/batch/")) {
+      const batchId = url.pathname.split("/").pop();
+      if (!batchId) {
+        return new Response("Invalid batch ID", { status: 400 });
+      }
+
+      const result = await redeemManager.deleteBatch(batchId);
+      if (!result.success) {
+        return new Response(JSON.stringify({ error: result.message }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      return new Response(JSON.stringify(result), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  }
+
+  // 用户兑换接口
+  if (req.method === "POST" && url.pathname === "/api/redeem") {
+    const body = await req.json();
+    const { code } = body;
+
+    if (!code) {
+      return new Response("Missing redeem code", { status: 400 });
+    }
+
+    const result = await redeemManager.redeemCode(code);
+    if (!result.success) {
+      return new Response(JSON.stringify({ error: result.message }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // 创建新的API Key
+    const apiKey = await keyManager.createKey(
+      result.batchInfo!.validityDays,
+      KeySource.CODE_EXCHANGE,
+      `Redeemed from code: ${code}`
+    );
+
+    // 标记兑换码已使用
+    await redeemManager.markCodeAsUsed(result.batchInfo!.batchId, code, apiKey);
+
+    return new Response(JSON.stringify({ apiKey }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
+  return new Response("Not Found", { status: 404 });
+}
+
 async function handleStaticFile(pathname: string): Promise<Response> {
   try {
     // 如果请求的是根路径，返回 index.html
@@ -506,6 +608,11 @@ async function handleRequest(req: Request): Promise<Response> {
   // Key 管理相关的路由
   if (url.pathname.startsWith("/api/admin/keys")) {
     return handleKeyManagement(req);
+  }
+
+  // 兑换码管理相关的路由
+  if (url.pathname.startsWith("/api/admin/redeem") || url.pathname === "/api/redeem") {
+    return addCorsHeaders(await handleRedeemManagement(req));
   }
 
   // WebSocket 处理
