@@ -60,7 +60,7 @@
 
         <div class="tab-content" id="settings">
             <div class="header">
-                <button class="primary-button" id="createRedeemBatchBtn">创建兑换码批次</button>
+                <button class="primary-button" id="createRedeemBatchBtn">批量创建兑换码</button>
             </div>
             <div class="redeem-list">
                 <div class="search">
@@ -281,11 +281,11 @@
         </div>
     </div>
 
-    <!-- 创建兑换码批次对话框 -->
+    <!-- 批量创建兑换码对话框 -->
     <div class="dialog-overlay" id="createRedeemBatchDialog">
         <div class="dialog">
             <div class="dialog-content">
-                <h3>创建兑换码批次</h3>
+                <h3>批量创建兑换码</h3>
                 <div class="form-group">
                     <label for="validityDays">兑换后key有效期（天）</label>
                     <input type="number" id="redeemValidityDays" value="30">
@@ -308,13 +308,39 @@
 
     <!-- 查看兑换码批次详情对话框 -->
     <div class="dialog-overlay" id="redeemBatchDetailDialog">
-        <div class="dialog">
+        <div class="dialog" id="batchDetailDialog">
             <div class="dialog-content">
                 <h3>批次详情</h3>
-                <div class="batch-info"></div>
-                <div class="codes-list"></div>
+                <div id="batchInfo" class="batch-info"></div>
+                <div class="code-list-header">
+                    <h4>兑换码列表</h4>
+                    <div class="copy-button-wrapper">
+                        <button id="copyAllLinks" class="action-button">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                            </svg>
+                            复制全部链接
+                        </button>
+                        <div class="tooltip" id="copyTooltip">已复制到剪贴板</div>
+                    </div>
+                </div>
+                <div id="codeList" class="code-list"></div>
                 <div class="dialog-buttons">
                     <button class="secondary-button close-dialog" data-dialog="redeemBatchDetailDialog">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除批次确认对话框 -->
+    <div class="dialog-overlay" id="deleteBatchDialog">
+        <div class="dialog">
+            <div class="dialog-content">
+                <h3>确认删除</h3>
+                <p id="deleteBatchText">确定要删除该批次吗？此操作无法撤销。</p>
+                <div class="dialog-buttons">
+                    <button class="secondary-button close-dialog" data-dialog="deleteBatchDialog">取消</button>
+                    <button id="confirmDeleteBatch" class="primary-button danger">删除</button>
                 </div>
             </div>
         </div>

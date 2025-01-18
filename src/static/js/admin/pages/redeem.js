@@ -1,8 +1,10 @@
 // Redeem Page Module
-import { showDialog, hideDialog } from '../ui/dialogs.js';
+import { showDialog } from '../ui/dialogs.js';
 import { initSearch } from '../ui/search.js';
 import { api } from '../utils/api.js';
 import { formatDate } from '../utils/date.js';
+import { copyToClipboard } from '../utils/clipboard.js';
+import { hideDialog } from '../ui/dialogs.js'; // Add this line
 
 export class RedeemPage {
     constructor() {
@@ -93,7 +95,22 @@ export class RedeemPage {
         return `
             <div class="batch-item" data-batch-id="${batch.batchId}">
                 <div class="batch-header">
-                    <div class="batch-id">${batch.batchId}</div>
+                    <div class="batch-id"><span class="label">批次号：</span>${batch.batchId}</div>
+                    <div class="batch-actions">
+                        <button class="action-button view" data-action="view">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            查看详情
+                        </button>
+                        <button class="action-button delete" data-action="delete">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            删除
+                        </button>
+                    </div>
                 </div>
                 <div class="batch-stats">
                     <span>创建时间: ${formatDate(batch.createdAt)}</span>
@@ -101,38 +118,56 @@ export class RedeemPage {
                     <span>兑换后key有效期: ${batch.validityDays}天</span>
                 </div>
                 ${batch.note ? `<div class="batch-note">备注: ${batch.note}</div>` : ''}
-                <div class="batch-actions">
-                    <button class="action-button view" data-action="view">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        查看详情
-                    </button>
-                    <button class="action-button delete" data-action="delete">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        删除
-                    </button>
-                </div>
             </div>
         `;
     }
 
     bindBatchActions() {
-        this.redeemListContent.querySelectorAll('.action-button').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const action = button.dataset.action;
-                const batchId = button.closest('.batch-item').dataset.batchId;
-                
-                if (action === 'view') {
-                    this.showBatchDetail(batchId);
-                } else if (action === 'delete') {
-                    this.deleteBatch(batchId);
-                }
-            });
+        this.redeemListContent.addEventListener('click', async (e) => {
+            const button = e.target.closest('button');
+            if (!button) return;
+
+            const batchId = button.closest('.batch-item').dataset.batchId;
+            const action = button.dataset.action;
+
+            if (action === 'view') {
+                await this.showBatchDetail(batchId);
+            } else if (action === 'delete') {
+                this.showDeleteConfirmDialog(batchId);
+            }
         });
+    }
+
+    showDeleteConfirmDialog(batchId) {
+        const dialog = document.getElementById('deleteBatchDialog');
+        const errorText = dialog.querySelector('#deleteBatchText');
+        const originalText = errorText.textContent;
+
+        const onConfirm = async () => {
+            try {
+                await api.deleteRedeemBatch(batchId);
+                hideDialog('deleteBatchDialog');
+                await this.loadBatches();
+            } catch (err) {
+                console.error('Failed to delete batch:', err);
+                errorText.textContent = '删除失败，请重试';
+                errorText.style.color = '#dc2626';
+                // 3秒后恢复原始文本
+                setTimeout(() => {
+                    errorText.textContent = originalText;
+                    errorText.style.color = '';
+                }, 3000);
+            }
+        };
+
+        // 绑定确认按钮事件
+        const confirmBtn = document.getElementById('confirmDeleteBatch');
+        confirmBtn.onclick = onConfirm;
+
+        // 显示对话框时重置文本
+        errorText.textContent = originalText;
+        errorText.style.color = '';
+        showDialog('deleteBatchDialog');
     }
 
     // handleFilterClick(e) {
@@ -172,39 +207,77 @@ export class RedeemPage {
             showDialog('messageDialog', { message: '兑换码批次创建成功' });
         } catch (error) {
             console.error('Failed to create redeem batch:', error);
-            showDialog('messageDialog', { message: '创建兑换码批次失败' });
+            showDialog('messageDialog', { message: '批量创建兑换码失败' });
         }
     }
 
     async showBatchDetail(batchId) {
         try {
-            const codes = await api.getRedeemBatchCodes(batchId);
             const batch = this.batches.find(b => b.batchId === batchId);
+            if (!batch) return;
+
+            const codes = await api.getRedeemBatchCodes(batchId);
+            const batchInfo = document.getElementById('batchInfo');
+            const codeList = document.getElementById('codeList');
             
-            const dialog = document.getElementById('redeemBatchDetailDialog');
-            const batchInfo = dialog.querySelector('.batch-info');
-            const codesList = dialog.querySelector('.codes-list');
-            
+            if (!batchInfo || !codeList) {
+                console.error('Detail dialog elements not found');
+                return;
+            }
+
             batchInfo.innerHTML = `
                 <div>批次ID: ${batch.batchId}</div>
                 <div>创建时间: ${formatDate(batch.createdAt)}</div>
                 <div>已使用: ${batch.usedCodes}/${batch.totalCodes}</div>
                 ${batch.note ? `<div>备注: ${batch.note}</div>` : ''}
             `;
-            
-            codesList.innerHTML = codes.map(code => `
+
+            codeList.innerHTML = codes.map(code => `
                 <div class="code-item">
-                    <span class="code-value">${code.code}</span>
-                    <span class="code-status ${code.isUsed ? 'used' : 'unused'}">
-                        ${code.isUsed ? `已使用 (${formatDate(code.usedAt)})` : '未使用'}
+                    <span class="code">${code.code}</span>
+                    <span class="status ${code.isUsed ? 'used' : 'unused'}">
+                        ${code.isUsed ? '已使用' : '未使用'}
                     </span>
                 </div>
             `).join('');
-            
+
+            // 绑定复制按钮事件
+            const copyBtn = document.getElementById('copyAllLinks');
+            if (copyBtn) {
+                copyBtn.onclick = () => this.copyAllLinks(batch.batchId, codes);
+            }
+
             showDialog('redeemBatchDetailDialog');
         } catch (error) {
             console.error('Failed to load batch details:', error);
             showDialog('messageDialog', { message: '加载批次详情失败' });
+        }
+    }
+
+    async copyAllLinks(batchId, codes) {
+        const domain = window.location.origin;
+        const links = codes.map(code => `${domain}/key/redeem/${batchId}-${code.code}`).join('\n');
+        
+        try {
+            const success = await copyToClipboard(links);
+            const tooltip = document.getElementById('copyTooltip');
+            if (success) {
+                tooltip.textContent = '已复制到剪贴板';
+            } else {
+                tooltip.textContent = '复制失败，请重试';
+            }
+            tooltip.classList.add('show');
+            setTimeout(() => {
+                tooltip.classList.remove('show');
+            }, 1500);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+            const tooltip = document.getElementById('copyTooltip');
+            tooltip.textContent = '复制失败，请重试';
+            tooltip.classList.add('show');
+            setTimeout(() => {
+                tooltip.classList.remove('show');
+            }, 1500);
         }
     }
 

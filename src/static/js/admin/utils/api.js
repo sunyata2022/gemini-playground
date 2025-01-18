@@ -120,7 +120,7 @@ export class ApiClient {
         return this.request('/api/admin/redeem/batches');
     }
 
-    // 创建兑换码批次
+    // 批量创建兑换码
     async createRedeemBatch({ validityDays, count, note }) {
         return this.request('/api/admin/redeem/batch', {
             method: 'POST',
@@ -136,6 +136,13 @@ export class ApiClient {
     // 删除兑换码批次
     async deleteRedeemBatch(batchId) {
         return this.request(`/api/admin/redeem/batch/${batchId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // 删除批次
+    async deleteBatch(batchId) {
+        return this.request(`/api/admin/batch/${batchId}`, {
             method: 'DELETE'
         });
     }
