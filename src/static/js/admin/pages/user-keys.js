@@ -206,12 +206,12 @@ export class UserKeysPage {
 
     bindKeyActions() {
         // 绑定复制按钮
-        this.container.querySelectorAll('.copy-icon').forEach(icon => {
-            icon.addEventListener('click', (e) => {
-                const keyItem = e.target.closest('.key-item');
+        this.container.querySelectorAll('.copy-icon-container').forEach(container => {
+            container.addEventListener('click', (e) => {
+                const keyItem = container.closest('.key-item');
                 if (keyItem) {
                     const key = keyItem.dataset.key;
-                    const tooltip = keyItem.querySelector('.copy-tooltip');
+                    const tooltip = container.querySelector('.copy-tooltip');
                     this.copyToClipboard(key, tooltip);
                 }
             });

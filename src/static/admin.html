@@ -77,7 +77,6 @@
                     <div class="filter-buttons">
                         <button class="filter-button active" data-filter="active">有效</button>
                         <button class="filter-button" data-filter="inactive">失效</button>
-                        <button class="filter-button" data-filter="all">全部</button>
                     </div>
                 </div>
                 <div class="gemini-keys-list-content" id="geminiKeysListContent"></div>
@@ -233,6 +232,41 @@
                 <div class="dialog-buttons">
                     <button class="secondary-button" id="cancelEdit">取消</button>
                     <button class="primary-button" id="confirmEdit">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑Gemini Key对话框 -->
+    <div class="dialog-overlay" id="editGeminiKeyDialog">
+        <div class="dialog">
+            <div class="dialog-content">
+                <h3>编辑Gemini Key</h3>
+                <div class="error-message" id="editGeminiKeyErrorMessage" style="display: none;"></div>
+                <div class="form-group">
+                    <label for="editGeminiAccount">账号</label>
+                    <input type="text" id="editGeminiAccount" placeholder="请输入对应的Gemini账号">
+                </div>
+                <div class="form-group">
+                    <label for="editGeminiKeyNote">备注</label>
+                    <input type="text" id="editGeminiKeyNote" placeholder="可选，添加备注信息">
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <div class="radio-group">
+                        <label for="editGeminiStatusActive">
+                            <input type="radio" name="editGeminiKeyStatus" id="editGeminiStatusActive" value="active">
+                            <span class="active">有效</span>
+                        </label>
+                        <label for="editGeminiStatusInactive">
+                            <input type="radio" name="editGeminiKeyStatus" id="editGeminiStatusInactive" value="inactive">
+                            <span class="inactive">失效</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="dialog-buttons">
+                    <button class="secondary-button" id="cancelEditGeminiKey">取消</button>
+                    <button class="primary-button" id="confirmEditGeminiKey">确定</button>
                 </div>
             </div>
         </div>

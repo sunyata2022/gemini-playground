@@ -94,6 +94,20 @@ export class ApiClient {
         });
     }
 
+    // 编辑Gemini Key
+    async editGeminiKey(key, data) {
+        const response = await this.request(`/api/admin/gemini-keys/${key}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.success) {
+            throw new Error(response.error || '编辑失败');
+        }
+
+        return response;
+    }
+
     // 删除Gemini密钥
     async deleteGeminiKey(key) {
         return this.request(`/api/admin/gemini-keys/${key}`, {

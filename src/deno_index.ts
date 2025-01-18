@@ -343,42 +343,70 @@ async function handleGeminiKeyManagement(req: Request): Promise<Response> {
 
     if (method === 'PUT' && url.pathname.startsWith('/api/admin/gemini-keys/')) {
       const key = url.pathname.split('/').pop();
-      const { action, account, note } = await req.json();
+      const { account, note, status } = await req.json();
+      
+      console.log('Updating key:', key, { account, note, status });
       
       if (!key) {
-        return addCorsHeaders(new Response('Missing key', { status: 400 }));
+        return addCorsHeaders(new Response(JSON.stringify({ error: 'Missing key' }), { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      // 检查key是否存在
+      const keyInfo = await geminiKeyManager.getKeyInfo(key);
+      if (!keyInfo) {
+        return addCorsHeaders(new Response(JSON.stringify({ error: 'Key not found' }), { 
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        }));
       }
 
       // 更新状态
-      if (action) {
-        if (action === 'activate') {
-          if (!await geminiKeyManager.activateKey(key)) {
-            return addCorsHeaders(new Response('Key not found', { status: 404 }));
-          }
-        } else if (action === 'deactivate') {
-          if (!await geminiKeyManager.deactivateKey(key)) {
-            return addCorsHeaders(new Response('Key not found', { status: 404 }));
-          }
+      if (status) {
+        console.log('Updating status to:', status);
+        if (!['active', 'inactive'].includes(status)) {
+          return addCorsHeaders(new Response(JSON.stringify({ error: 'Invalid status' }), { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+
+        // 尝试更新状态，如果返回false说明key已经在目标状态了
+        if (status === 'active') {
+          await geminiKeyManager.activateKey(key);
         } else {
-          return addCorsHeaders(new Response('Invalid action', { status: 400 }));
+          await geminiKeyManager.deactivateKey(key);
         }
       }
 
       // 更新信息
       if (account !== undefined || note !== undefined) {
+        console.log('Updating account/note');
         if (!await geminiKeyManager.updateKeyInfo(key, { account, note })) {
-          return addCorsHeaders(new Response('Key not found', { status: 404 }));
+          console.log('Failed to update key info');
+          return addCorsHeaders(new Response(JSON.stringify({ error: 'Failed to update key info' }), { 
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }));
         }
       }
 
-      return addCorsHeaders(new Response('Key updated successfully', { status: 200 }));
+      return addCorsHeaders(new Response(JSON.stringify({ success: true }), { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }));
     }
 
     if (method === 'DELETE' && url.pathname.startsWith('/api/admin/gemini-keys/')) {
       const key = url.pathname.split('/').pop();
       
       if (!key) {
-        return addCorsHeaders(new Response('Missing key', { status: 400 }));
+        return addCorsHeaders(new Response(JSON.stringify({ error: 'Missing key' }), { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }));
       }
 
       const success = await geminiKeyManager.removeKey(key);

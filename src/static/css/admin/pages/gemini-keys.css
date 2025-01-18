@@ -55,6 +55,7 @@
     align-items: center;
     gap: 12px;
     margin-bottom: 4px;
+    flex-wrap: wrap;
 }
 
 .gemini-key-item .key-value {
@@ -65,6 +66,9 @@
     padding: 4px 8px;
     border-radius: 4px;
     user-select: all;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .gemini-key-item .copy-icon-container {
@@ -98,35 +102,11 @@
     font-size: 12px;
     white-space: nowrap;
     pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+    display: none;
 }
 
 .gemini-key-item .copy-tooltip.show {
-    opacity: 1;
-    animation: fadeInOut 1.5s ease forwards;
-}
-
-@keyframes fadeInOut {
-    0% { opacity: 0; }
-    20% { opacity: 1; }
-    80% { opacity: 1; }
-    100% { opacity: 0; }
-}
-
-.gemini-key-item .account-info {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    color: #2c3e50;
-    margin: 8px 0;
-}
-
-.gemini-key-item .account-info .icon {
-    width: 16px;
-    height: 16px;
-    opacity: 0.7;
+    display: block;
 }
 
 .gemini-key-item .key-meta {
@@ -153,12 +133,13 @@
 .gemini-key-item .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 4px;
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .gemini-key-item .status-badge.active {
@@ -167,7 +148,7 @@
 }
 
 .gemini-key-item .status-badge.inactive {
-    background-color: #fce8e6;
+    background: #fce8e6;
     color: #d93025;
 }
 
@@ -179,37 +160,42 @@
 .gemini-key-item .key-actions-container {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-left: 12px;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: 0;
 }
 
 .gemini-key-item .action-icon {
     cursor: pointer;
-    color: #666;
     padding: 4px;
     border-radius: 4px;
     transition: all 0.2s ease;
 }
 
-.gemini-key-item .action-icon:hover {
+.gemini-key-item .copy-icon,
+.gemini-key-item .edit-icon {
+    color: #666;
+}
+
+.gemini-key-item .copy-icon:hover,
+.gemini-key-item .edit-icon:hover {
     color: #1a73e8;
     background: #f0f4fe;
 }
 
-.gemini-key-item .delete-icon:hover {
+.gemini-key-item .delete-icon {
+    width: 16px;
+    height: 16px;
     color: #d93025;
+}
+
+.gemini-key-item .delete-icon:hover {
     background: #fce8e6;
 }
 
 .gemini-key-item .key-actions {
     display: flex;
     gap: 8px;
-}
-
-.gemini-key-item .key-actions button {
-    padding: 6px 12px;
-    font-size: 13px;
-    border-radius: 6px;
 }
 
 .gemini-key-item .note-text {
@@ -266,4 +252,16 @@
     width: 16px;
     height: 16px;
     color: #d93025;
+}
+
+.gemini-key-item .account-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+}
+
+.gemini-key-item .account-info .icon {
+    width: 16px;
+    height: 16px;
 }

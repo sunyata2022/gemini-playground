@@ -3,7 +3,6 @@ import { showDialog, hideDialog } from '../ui/dialogs.js';
 import { initSearch } from '../ui/search.js';
 import { api } from '../utils/api.js';
 import { formatDate } from '../utils/date.js';
-import { copyToClipboard } from '../utils/clipboard.js';
 
 export class GeminiKeysPage {
     constructor() {
@@ -12,6 +11,7 @@ export class GeminiKeysPage {
         this.searchInput = document.getElementById('searchGeminiInput');
         this.clearSearchBtn = document.getElementById('clearGeminiSearch');
         this.createKeyBtn = document.getElementById('createGeminiKeyBtn');
+        this.currentFilter = 'active'; // 设置初始筛选条件
         
         this.bindEvents();
         this.initializeSearch();
@@ -22,12 +22,33 @@ export class GeminiKeysPage {
         
         // Filter buttons
         this.container.querySelectorAll('.filter-button').forEach(button => {
-            button.addEventListener('click', (e) => this.handleFilterClick(e));
+            button.addEventListener('click', (e) => {
+                const button = e.target;
+                this.currentFilter = button.dataset.filter;
+                
+                // Update active state
+                this.container.querySelectorAll('.filter-button').forEach(btn => {
+                    btn.classList.toggle('active', btn === button);
+                });
+
+                // Apply filter
+                this.filterAndRenderKeys(this.searchInput.value);
+            });
         });
 
         // 绑定创建Gemini Key对话框的确认和取消按钮
         document.getElementById('confirmCreateGeminiKey').addEventListener('click', () => this.handleCreateKey());
         document.getElementById('cancelCreateGeminiKey').addEventListener('click', () => hideDialog('createGeminiKeyDialog'));
+
+        // 编辑对话框的确认和取消按钮
+        document.getElementById('confirmEditGeminiKey').addEventListener('click', () => this.handleEditKey());
+        document.getElementById('cancelEditGeminiKey').addEventListener('click', () => {
+            hideDialog('editGeminiKeyDialog');
+            // 清除错误消息
+            const errorMessage = document.getElementById('editGeminiKeyErrorMessage');
+            errorMessage.style.display = 'none';
+            errorMessage.textContent = '';
+        });
     }
 
     initializeSearch() {
@@ -57,8 +78,12 @@ export class GeminiKeysPage {
     async loadKeys() {
         try {
             const response = await api.getGeminiKeys();
-            this.keys = [...response.active, ...response.inactive];
-            this.renderKeys(this.keys);
+            // 分别存储active和inactive的keys
+            this.activeKeys = response.active || [];
+            this.inactiveKeys = response.inactive || [];
+            // 合并所有keys用于搜索
+            this.keys = [...this.activeKeys, ...this.inactiveKeys];
+            this.filterAndRenderKeys(this.searchInput.value);  
         } catch (error) {
             console.error('Failed to load Gemini keys:', error);
             showDialog('messageDialog', { message: '加载Gemini Key失败' });
@@ -71,12 +96,14 @@ export class GeminiKeysPage {
     }
 
     renderKeyItem(key) {
-        const isActive = key.errorCount < 3;
+        // 根据key是否在activeKeys数组中来判断状态
+        const isActive = this.activeKeys.some(k => k.key === key.key);
         return `
             <div class="gemini-key-item" data-key="${key.key}">
                 <div class="key-header">
                     <div class="key-info">
                         <div class="key-value-container">
+                            <div class="key-value">${key.key}</div>
                             <span class="status-badge ${isActive ? 'active' : 'inactive'}">
                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     ${isActive 
@@ -85,7 +112,6 @@ export class GeminiKeysPage {
                                 </svg>
                                 ${isActive ? '有效' : '已失效'}
                             </span>
-                            <div class="key-value">${key.key}</div>
                             <div class="key-actions-container">
                                 <div class="copy-icon-container">
                                     <svg class="action-icon copy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -94,7 +120,11 @@ export class GeminiKeysPage {
                                     </svg>
                                     <div class="copy-tooltip">已复制</div>
                                 </div>
-                                <svg class="action-icon delete-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <svg class="action-icon edit-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                <svg class="action-icon delete-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d93025" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                                 </svg>
@@ -161,20 +191,21 @@ export class GeminiKeysPage {
 
     bindKeyActions() {
         // Bind copy icons
-        this.container.querySelectorAll('.copy-icon').forEach(icon => {
+        this.container.querySelectorAll('.copy-icon-container').forEach(container => {
+            container.addEventListener('click', (e) => {
+                const keyItem = container.closest('.gemini-key-item');
+                const key = keyItem.dataset.key;
+                const tooltip = container.querySelector('.copy-tooltip');
+                this.copyToClipboard(key, tooltip);
+            });
+        });
+
+        // 编辑按钮
+        this.container.querySelectorAll('.edit-icon').forEach(icon => {
             icon.addEventListener('click', (e) => {
                 const keyItem = e.target.closest('.gemini-key-item');
                 const key = keyItem.dataset.key;
-                copyToClipboard(key);
-                
-                // Show tooltip
-                const tooltip = icon.closest('.copy-icon-container').querySelector('.copy-tooltip');
-                tooltip.classList.add('show');
-                
-                // Remove show class after animation
-                setTimeout(() => {
-                    tooltip.classList.remove('show');
-                }, 1500);
+                this.showEditDialog(key);
             });
         });
 
@@ -188,42 +219,27 @@ export class GeminiKeysPage {
         });
     }
 
-    handleFilterClick(e) {
-        const button = e.target;
-        const filter = button.dataset.filter;
-        
-        // Update active state
-        this.container.querySelectorAll('.filter-button').forEach(btn => {
-            btn.classList.toggle('active', btn === button);
-        });
+    filterAndRenderKeys(query) {
+        if (!this.activeKeys || !this.inactiveKeys) return;
 
-        // Apply filter
-        this.filterAndRenderKeys(this.searchInput.value, filter);
-    }
+        let keysToShow = [];
+        if (this.currentFilter === 'active') {
+            keysToShow = this.activeKeys;
+        } else if (this.currentFilter === 'inactive') {
+            keysToShow = this.inactiveKeys;
+        }
 
-    filterAndRenderKeys(query, filter = 'active') {
-        if (!this.keys) return;
-
-        let filteredKeys = this.keys;
-
-        // Apply search filter
+        // 应用搜索过滤
         if (query) {
             const lowercaseQuery = query.toLowerCase();
-            filteredKeys = filteredKeys.filter(key => 
+            keysToShow = keysToShow.filter(key => 
                 key.key.toLowerCase().includes(lowercaseQuery) ||
-                key.account.toLowerCase().includes(lowercaseQuery) ||
+                (key.account && key.account.toLowerCase().includes(lowercaseQuery)) ||
                 (key.note && key.note.toLowerCase().includes(lowercaseQuery))
             );
         }
 
-        // Apply status filter
-        if (filter !== 'all') {
-            filteredKeys = filteredKeys.filter(key => 
-                filter === 'active' ? key.errorCount < 3 : key.errorCount >= 3
-            );
-        }
-
-        this.renderKeys(filteredKeys);
+        this.renderKeys(keysToShow);
     }
 
     showCreateKeyDialog() {
@@ -256,6 +272,62 @@ export class GeminiKeysPage {
             await this.loadKeys();
         } catch (error) {
             console.error('Failed to add Gemini key:', error);
+            errorMessage.textContent = error.message;
+            errorMessage.style.display = 'block';
+        }
+    }
+
+    showEditDialog(key) {
+        // 在两个数组中查找key
+        const keyInfo = this.activeKeys.find(k => k.key === key) || this.inactiveKeys.find(k => k.key === key);
+        if (!keyInfo) return;
+
+        // 填充表单数据
+        document.getElementById('editGeminiAccount').value = keyInfo.account || '';
+        document.getElementById('editGeminiKeyNote').value = keyInfo.note || '';
+        
+        // 设置状态单选按钮
+        const status = this.activeKeys.some(k => k.key === key) ? 'active' : 'inactive';
+        document.querySelector(`input[name="editGeminiKeyStatus"][value="${status}"]`).checked = true;
+        
+        // 存储当前编辑的key
+        this.editingKey = key;
+        
+        // 显示对话框
+        showDialog('editGeminiKeyDialog');
+    }
+
+    async handleEditKey() {
+        try {
+            const account = document.getElementById('editGeminiAccount').value.trim();
+            const note = document.getElementById('editGeminiKeyNote').value.trim();
+            const status = document.querySelector('input[name="editGeminiKeyStatus"]:checked').value;
+
+            if (!account) {
+                throw new Error('账号不能为空');
+            }
+
+            // 发送编辑请求
+            await api.editGeminiKey(this.editingKey, {
+                account,
+                note,
+                status
+            });
+
+            // 隐藏对话框
+            hideDialog('editGeminiKeyDialog');
+
+            // 清除错误消息
+            const errorMessage = document.getElementById('editGeminiKeyErrorMessage');
+            errorMessage.style.display = 'none';
+            errorMessage.textContent = '';
+
+            // 重新加载列表
+            await this.loadKeys();
+
+        } catch (error) {
+            // 显示错误消息
+            const errorMessage = document.getElementById('editGeminiKeyErrorMessage');
             errorMessage.textContent = error.message;
             errorMessage.style.display = 'block';
         }
@@ -317,6 +389,36 @@ export class GeminiKeysPage {
         } catch (error) {
             console.error('Failed to delete Gemini key:', error);
             showDialog('messageDialog', { message: '删除失败：' + error.message });
+        }
+    }
+
+    // 通用的复制文本函数
+    async copyToClipboard(text, tooltip) {
+        try {
+            // 优先使用 navigator.clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                // 降级方案：使用 textarea
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+
+            // 显示tooltip
+            if (tooltip) {
+                tooltip.classList.add('show');
+                setTimeout(() => {
+                    tooltip.classList.remove('show');
+                }, 1500);
+            }
+        } catch (error) {
+            console.error('Failed to copy text:', error);
         }
     }
 }
