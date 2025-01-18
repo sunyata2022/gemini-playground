@@ -7,7 +7,6 @@ interface RedeemBatchInfo {
     validityDays: number;   // 该批次兑换码对应的key有效期
     totalCodes: number;     // 总共生成的兑换码数量
     usedCodes: number;      // 已使用的兑换码数量
-    expiresAt: number;      // 批次过期时间
 }
 
 interface RedeemCodeInfo {
@@ -97,31 +96,26 @@ export class RedeemManager {
             createdAt: now,
             validityDays,
             totalCodes: count,
-            usedCodes: 0,
-            expiresAt: now + (validityDays * 24 * 60 * 60 * 1000)
+            usedCodes: 0
         };
 
-        // 创建原子操作
+        // 存储批次信息
         const atomic = this.kv.atomic();
-
-        // 添加批次信息
         atomic.set(["redeem_batch:", batchId], batchInfo);
 
-        // 添加所有兑换码
+        // 存储所有兑换码
         for (const code of codes) {
-            const redeemInfo: RedeemCodeInfo = {
+            const codeInfo: RedeemCodeInfo = {
                 code,
                 batchId,
                 isUsed: false
             };
-            atomic.set(["redeem_code:", batchId, code], redeemInfo);
+            atomic.set(["redeem_code:", batchId, code], codeInfo);
         }
 
-        // 原子执行所有操作
         const result = await atomic.commit();
-        
         if (!result.ok) {
-            throw new Error("创建批次失败，可能是批次ID或兑换码重复");
+            throw new Error("存储兑换码批次失败");
         }
 
         return batchInfo;
@@ -154,39 +148,53 @@ export class RedeemManager {
     }
 
     // 使用兑换码
-    async redeemCode(code: string): Promise<{ success: boolean; message: string; batchInfo?: RedeemBatchInfo; codeInfo?: RedeemCodeInfo }> {
-        // 遍历所有批次查找兑换码
-        const iter = this.kv.list<RedeemCodeInfo>({ prefix: ["redeem_code:"] });
-        for await (const entry of iter) {
-            if (entry.value.code === code) {
-                const codeInfo = entry.value;
-                
-                // 检查是否已使用
-                if (codeInfo.isUsed) {
-                    return { success: false, message: "兑换码已被使用" };
-                }
-
-                // 获取批次信息
-                const batchInfo = await this.getBatchInfo(codeInfo.batchId);
-                if (!batchInfo) {
-                    return { success: false, message: "找不到对应的批次信息" };
-                }
-
-                // 检查批次是否过期
-                if (Date.now() > batchInfo.expiresAt) {
-                    return { success: false, message: "兑换码已过期" };
-                }
-
-                return { 
-                    success: true, 
-                    message: "兑换码有效", 
-                    batchInfo,
-                    codeInfo 
-                };
-            }
+    async useCode(code: string, usedBy: string): Promise<{ success: boolean; message: string; validityDays?: number }> {
+        // 查找兑换码
+        const codeInfo = await this.findCode(code);
+        if (!codeInfo) {
+            return { success: false, message: "兑换码不存在" };
         }
 
-        return { success: false, message: "无效的兑换码" };
+        if (codeInfo.isUsed) {
+            return { success: false, message: "兑换码已被使用" };
+        }
+
+        // 获取批次信息
+        const batchInfo = await this.kv.get<RedeemBatchInfo>(["redeem_batch:", codeInfo.batchId]);
+        if (!batchInfo.value) {
+            return { success: false, message: "兑换码批次不存在" };
+        }
+
+        // 更新兑换码状态
+        const now = Date.now();
+        const updatedCodeInfo: RedeemCodeInfo = {
+            ...codeInfo,
+            isUsed: true,
+            usedAt: now,
+            usedBy
+        };
+
+        // 更新批次使用数量
+        const updatedBatchInfo: RedeemBatchInfo = {
+            ...batchInfo.value,
+            usedCodes: batchInfo.value.usedCodes + 1
+        };
+
+        // 原子更新
+        const result = await this.kv.atomic()
+            .set(["redeem_code:", codeInfo.batchId, code], updatedCodeInfo)
+            .set(["redeem_batch:", codeInfo.batchId], updatedBatchInfo)
+            .commit();
+
+        if (!result.ok) {
+            return { success: false, message: "更新兑换码状态失败" };
+        }
+
+        return { 
+            success: true, 
+            message: "兑换成功",
+            validityDays: batchInfo.value.validityDays
+        };
     }
 
     // 标记兑换码已使用
@@ -245,5 +253,16 @@ export class RedeemManager {
         await Promise.all(deletePromises);
 
         return { success: true, message: "批次删除成功" };
+    }
+
+    private async findCode(code: string): Promise<RedeemCodeInfo | null> {
+        // 遍历所有批次查找兑换码
+        const iter = this.kv.list<RedeemCodeInfo>({ prefix: ["redeem_code:"] });
+        for await (const entry of iter) {
+            if (entry.value.code === code) {
+                return entry.value;
+            }
+        }
+        return null;
     }
 }

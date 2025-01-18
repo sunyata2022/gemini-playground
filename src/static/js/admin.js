@@ -3,7 +3,7 @@ import { initAuth } from './admin/auth.js';
 import { initTabs } from './admin/ui/tabs.js';
 import { initUserKeysPage } from './admin/pages/user-keys.js';
 import { initGeminiKeysPage } from './admin/pages/gemini-keys.js';
-import { initSettingsPage } from './admin/pages/settings.js';
+import { initRedeemPage } from './admin/pages/redeem.js';
 
 // Initialize the application
 async function initializeApp() {
@@ -20,7 +20,7 @@ async function initializeApp() {
         // Initialize all pages
         initUserKeysPage();
         initGeminiKeysPage();
-        initSettingsPage();
+        initRedeemPage();
         
     } catch (error) {
         console.error('Failed to initialize app:', error);

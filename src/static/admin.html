@@ -9,7 +9,7 @@
     <!-- Page Specific CSS -->
     <link rel="stylesheet" href="css/admin/pages/user-keys.css?v=1">
     <link rel="stylesheet" href="css/admin/pages/gemini-keys.css?v=1">
-    <link rel="stylesheet" href="css/admin/pages/settings.css?v=1">
+    <link rel="stylesheet" href="css/admin/pages/redeem.css?v=1">
     <!-- JavaScript Entry Point -->
     <script type="module" src="js/admin.js?v=2"></script>
 </head>
@@ -34,7 +34,7 @@
     <div class="container" id="mainContent" style="display: none;">
         <div class="tabs">
             <button class="tab-button active" data-tab="keys">用户Key</button>
-            <button class="tab-button" data-tab="settings">提取链接</button>
+            <button class="tab-button" data-tab="settings">兑换码</button>
             <button class="tab-button" data-tab="gemini">Gemini Key</button>
         </div>
 
@@ -51,7 +51,6 @@
                     <div class="filter-group">
                         <button class="filter-button active" data-filter="active">有效</button>
                         <button class="filter-button" data-filter="disabled">已禁用</button>
-                        <button class="filter-button" data-filter="expired">已过期</button>
                         <button class="filter-button" data-filter="all">全部</button>
                     </div>
                 </div>
@@ -60,8 +59,18 @@
         </div>
 
         <div class="tab-content" id="settings">
-            <h3>提取链接</h3>
-            <p>更多设置选项即将推出...</p>
+            <div class="header">
+                <button class="primary-button" id="createRedeemBatchBtn">创建兑换码批次</button>
+            </div>
+            <div class="redeem-list">
+                <div class="search">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="searchRedeemInput" placeholder="搜索批次ID或备注...">
+                        <button class="clear-search" id="clearRedeemSearch" style="display: none;">×</button>
+                    </div>
+                </div>
+                <div class="redeem-list-content" id="redeemListContent"></div>
+            </div>
         </div>
 
         <div class="tab-content" id="gemini">
@@ -267,6 +276,45 @@
                 <div class="dialog-buttons">
                     <button class="secondary-button" id="cancelEditGeminiKey">取消</button>
                     <button class="primary-button" id="confirmEditGeminiKey">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建兑换码批次对话框 -->
+    <div class="dialog-overlay" id="createRedeemBatchDialog">
+        <div class="dialog">
+            <div class="dialog-content">
+                <h3>创建兑换码批次</h3>
+                <div class="form-group">
+                    <label for="validityDays">兑换后key有效期（天）</label>
+                    <input type="number" id="redeemValidityDays" value="30">
+                </div>
+                <div class="form-group">
+                    <label for="redeemCount">生成数量</label>
+                    <input type="number" id="redeemCount" value="100">
+                </div>
+                <div class="form-group">
+                    <label for="redeemNote">备注</label>
+                    <input type="text" id="redeemNote" placeholder="记录批次用途等信息，方便后续管理">
+                </div>
+                <div class="dialog-buttons">
+                    <button class="secondary-button" id="cancelCreateRedeemBatch">取消</button>
+                    <button class="primary-button" id="confirmCreateRedeemBatch">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看兑换码批次详情对话框 -->
+    <div class="dialog-overlay" id="redeemBatchDetailDialog">
+        <div class="dialog">
+            <div class="dialog-content">
+                <h3>批次详情</h3>
+                <div class="batch-info"></div>
+                <div class="codes-list"></div>
+                <div class="dialog-buttons">
+                    <button class="secondary-button close-dialog" data-dialog="redeemBatchDetailDialog">关闭</button>
                 </div>
             </div>
         </div>

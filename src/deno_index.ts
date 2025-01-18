@@ -454,7 +454,8 @@ async function handleRedeemManagement(req: Request): Promise<Response> {
       const body = await req.json();
       const { validityDays, count, note } = body;
       
-      if (!validityDays || !count || count <= 0) {
+      // validityDays 可以是 -1（无限期）或正数
+      if ((validityDays !== -1 && (!validityDays || validityDays <= 0)) || !count || count <= 0) {
         return new Response("Invalid parameters", { status: 400 });
       }
 
@@ -509,28 +510,28 @@ async function handleRedeemManagement(req: Request): Promise<Response> {
     const { code } = body;
 
     if (!code) {
-      return new Response("Missing redeem code", { status: 400 });
+      return new Response("Missing code", { status: 400 });
     }
 
-    const result = await redeemManager.redeemCode(code);
+    const result = await redeemManager.useCode(code);
     if (!result.success) {
-      return new Response(JSON.stringify({ error: result.message }), {
+      return new Response(JSON.stringify({ error: result.message }), { 
         status: 400,
         headers: { "Content-Type": "application/json" }
       });
     }
 
-    // 创建新的API Key
-    const apiKey = await keyManager.createKey(
-      result.batchInfo!.validityDays,
-      KeySource.CODE_EXCHANGE,
-      `Redeemed from code: ${code}`
-    );
+    // 如果兑换成功，创建用户key
+    const validityDays = result.validityDays === -1 ? 36500 : result.validityDays; // 无限期设为100年
+    const userKey = await keyManager.createKey(validityDays, KeySource.CODE_EXCHANGE);
+    
+    // 更新兑换码的使用信息
+    await redeemManager.markCodeUsed(code, userKey);
 
-    // 标记兑换码已使用
-    await redeemManager.markCodeAsUsed(result.batchInfo!.batchId, code, apiKey);
-
-    return new Response(JSON.stringify({ apiKey }), {
+    return new Response(JSON.stringify({ 
+      message: result.message,
+      key: userKey
+    }), {
       headers: { "Content-Type": "application/json" }
     });
   }

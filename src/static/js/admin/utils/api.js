@@ -114,6 +114,31 @@ export class ApiClient {
             method: 'DELETE'
         });
     }
+
+    // 获取所有兑换码批次
+    async getRedeemBatches() {
+        return this.request('/api/admin/redeem/batches');
+    }
+
+    // 创建兑换码批次
+    async createRedeemBatch({ validityDays, count, note }) {
+        return this.request('/api/admin/redeem/batch', {
+            method: 'POST',
+            body: JSON.stringify({ validityDays, count, note })
+        });
+    }
+
+    // 获取批次中的兑换码
+    async getRedeemBatchCodes(batchId) {
+        return this.request(`/api/admin/redeem/batch/${batchId}`);
+    }
+
+    // 删除兑换码批次
+    async deleteRedeemBatch(batchId) {
+        return this.request(`/api/admin/redeem/batch/${batchId}`, {
+            method: 'DELETE'
+        });
+    }
 }
 
 // 创建并导出默认的API客户端实例
