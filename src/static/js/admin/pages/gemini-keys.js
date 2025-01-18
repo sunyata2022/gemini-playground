@@ -265,19 +265,54 @@ export class GeminiKeysPage {
         const keyInfo = this.keys.find(k => k.key === key);
         if (!keyInfo) return;
 
-        showDialog('confirmDialog', {
-            message: `确定要删除账号 ${keyInfo.account} 的Gemini Key吗？`,
-            onConfirm: async () => {
-                await this.handleDeleteKey(key);
+        const confirmDialog = document.getElementById('confirmDialog');
+        const messageContent = confirmDialog.querySelector('.message-content');
+        const confirmText = messageContent.querySelector('#confirmText');
+        
+        // 确保错误消息元素存在
+        let errorMessage = messageContent.querySelector('.error-message');
+        if (!errorMessage) {
+            errorMessage = document.createElement('div');
+            errorMessage.className = 'error-message';
+            errorMessage.style.cssText = 'color: #d93025; margin-top: 10px; display: none;';
+            messageContent.appendChild(errorMessage);
+        }
+
+        // 重置错误消息
+        errorMessage.style.display = 'none';
+        errorMessage.textContent = '';
+
+        // 设置确认消息
+        confirmText.textContent = `确定要删除账号 ${keyInfo.account} 的Gemini Key吗？`;
+
+        // 绑定确认按钮事件
+        const confirmButton = confirmDialog.querySelector('#confirmConfirm');
+        confirmButton.onclick = async () => {
+            try {
+                await api.deleteGeminiKey(key);
+                confirmDialog.style.display = 'none';
+                await this.loadKeys();
+            } catch (error) {
+                console.error('Failed to delete Gemini key:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
             }
-        });
+        };
+
+        // 绑定取消按钮事件
+        const cancelButton = confirmDialog.querySelector('#cancelConfirm');
+        cancelButton.onclick = () => {
+            confirmDialog.style.display = 'none';
+        };
+
+        // 显示对话框
+        confirmDialog.style.display = 'flex';
     }
 
     async handleDeleteKey(key) {
         try {
             await api.deleteGeminiKey(key);
             hideDialog('confirmDialog');
-            showDialog('messageDialog', { message: '删除成功' });
             await this.loadKeys();
         } catch (error) {
             console.error('Failed to delete Gemini key:', error);

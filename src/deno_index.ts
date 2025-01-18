@@ -335,7 +335,10 @@ async function handleGeminiKeyManagement(req: Request): Promise<Response> {
       }
 
       await geminiKeyManager.addKey(key, account, note);
-      return addCorsHeaders(new Response('Key added successfully', { status: 200 }));
+      return addCorsHeaders(new Response(JSON.stringify({ message: 'Key added successfully' }), { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }));
     }
 
     if (method === 'PUT' && url.pathname.startsWith('/api/admin/gemini-keys/')) {
@@ -380,16 +383,28 @@ async function handleGeminiKeyManagement(req: Request): Promise<Response> {
 
       const success = await geminiKeyManager.removeKey(key);
       if (!success) {
-        return addCorsHeaders(new Response('Key not found', { status: 404 }));
+        return addCorsHeaders(new Response(JSON.stringify({ error: 'Key not found' }), { 
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        }));
       }
 
-      return addCorsHeaders(new Response('Key deleted successfully', { status: 200 }));
+      return addCorsHeaders(new Response(JSON.stringify({ message: 'Key deleted successfully' }), { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }));
     }
 
-    return addCorsHeaders(new Response('Not Found', { status: 404 }));
+    return addCorsHeaders(new Response(JSON.stringify({ error: 'Not Found' }), { 
+      status: 404,
+      headers: { 'Content-Type': 'application/json' }
+    }));
   } catch (error) {
     console.error('Error in system key management:', error);
-    return addCorsHeaders(new Response('Internal Server Error', { status: 500 }));
+    return addCorsHeaders(new Response(JSON.stringify({ error: 'Internal Server Error' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    }));
   }
 }
 

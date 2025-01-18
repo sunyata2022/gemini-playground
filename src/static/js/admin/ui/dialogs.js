@@ -39,10 +39,17 @@ export function showDialog(dialogId, options = {}) {
         confirmButton.onclick = async () => {
             const callback = callbacks.get(dialogId);
             if (callback) {
-                await callback();
-                callbacks.delete(dialogId);
+                try {
+                    await callback();
+                    callbacks.delete(dialogId);
+                    hideDialog(dialogId);
+                } catch (error) {
+                    // 出错时不关闭对话框
+                    console.error('Dialog callback error:', error);
+                }
+            } else {
+                hideDialog(dialogId);
             }
-            hideDialog(dialogId);
         };
     }
 

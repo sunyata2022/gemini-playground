@@ -18,23 +18,32 @@ export class ApiClient {
             headers['Authorization'] = this.token.startsWith('Bearer ') ? this.token : `Bearer ${this.token}`;
         }
 
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            ...options,
-            headers
-        });
+        try {
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                ...options,
+                headers
+            });
 
-        const data = await response.json();
-        
-        if (!response.ok) {
-            // 如果服务器返回了错误信息，使用服务器的错误信息
-            if (data && data.error) {
-                throw new Error(data.error);
+            // 尝试解析JSON响应
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                // 如果响应不是JSON格式，使用状态文本
+                data = { error: response.statusText };
             }
-            // 否则使用默认的错误信息
-            throw new Error(`请求失败: ${response.statusText}`);
-        }
+            
+            if (!response.ok) {
+                throw new Error(data.error || `请求失败: ${response.statusText}`);
+            }
 
-        return data;
+            return data;
+        } catch (error) {
+            if (error instanceof TypeError && error.message === 'Failed to fetch') {
+                throw new Error('无法连接到服务器，请检查网络连接');
+            }
+            throw error;
+        }
     }
 
     // 验证管理员令牌
