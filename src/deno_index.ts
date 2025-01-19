@@ -504,29 +504,78 @@ async function handleRedeemManagement(req: Request): Promise<Response> {
     }
   }
 
-  // 用户兑换接口
-  if (req.method === "POST" && url.pathname === "/api/redeem") {
-    const body = await req.json();
-    const { code } = body;
-
-    if (!code) {
-      return new Response("Missing code", { status: 400 });
+  // 获取兑换码信息API
+  if (req.method === "GET" && url.pathname.startsWith("/api/redeem/info/")) {
+    const parts = url.pathname.split("/");
+    const batchId = parts[4]; // /api/redeem/info/BC/3d4YP-CLbEH2 => BC
+    const code = parts.slice(5).join("/"); // => 3d4YP-CLbEH2
+    
+    if (!batchId || !code) {
+      return new Response(JSON.stringify({ error: "Invalid redeem code" }), { 
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
-    const result = await redeemManager.useCode(code);
+    const codeInfo = await redeemManager.getRedeemCodeInfo(batchId, code);
+    if (!codeInfo) {
+      return new Response(JSON.stringify({ error: "Redeem code not found" }), { 
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    const batchInfo = await redeemManager.getBatchInfo(batchId);
+    if (!batchInfo) {
+      return new Response(JSON.stringify({ error: "Batch not found" }), { 
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    return new Response(JSON.stringify({
+      ...codeInfo,
+      validityDays: batchInfo.validityDays,
+      expiresAt: codeInfo.usedAt ? codeInfo.usedAt + (batchInfo.validityDays * 24 * 60 * 60 * 1000) : null
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
+  // 兑换API
+  if (req.method === "POST" && url.pathname.startsWith("/api/redeem/")) {
+    const parts = url.pathname.split("/");
+    const batchId = parts[3]; // /api/redeem/BC/3d4YP-CLbEH2 => BC
+    const code = parts.slice(4).join("/"); // => 3d4YP-CLbEH2
+    
+    if (!batchId || !code) {
+      return new Response(JSON.stringify({ error: "Invalid redeem code" }), { 
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // 获取批次信息
+    const batchInfo = await redeemManager.getBatchInfo(batchId);
+    if (!batchInfo) {
+      return new Response(JSON.stringify({ error: "Batch not found" }), { 
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // 创建用户key
+    const validityDays = batchInfo.validityDays === -1 ? 36500 : batchInfo.validityDays; // 无限期设为100年
+    const userKey = await keyManager.createKey(validityDays, KeySource.CODE_EXCHANGE);
+    
+    // 使用兑换码
+    const result = await redeemManager.useCode(batchId, code, userKey);
     if (!result.success) {
       return new Response(JSON.stringify({ error: result.message }), { 
         status: 400,
         headers: { "Content-Type": "application/json" }
       });
     }
-
-    // 如果兑换成功，创建用户key
-    const validityDays = result.validityDays === -1 ? 36500 : result.validityDays; // 无限期设为100年
-    const userKey = await keyManager.createKey(validityDays, KeySource.CODE_EXCHANGE);
-    
-    // 更新兑换码的使用信息
-    await redeemManager.markCodeUsed(code, userKey);
 
     return new Response(JSON.stringify({ 
       message: result.message,
@@ -537,31 +586,6 @@ async function handleRedeemManagement(req: Request): Promise<Response> {
   }
 
   return new Response("Not Found", { status: 404 });
-}
-
-async function handleStaticFile(pathname: string): Promise<Response> {
-  try {
-    // 如果请求的是根路径，返回 index.html
-    if (pathname === '/') {
-      pathname = '/index.html';
-    }
-    
-    // 如果请求的是 /admin，返回 admin.html
-    if (pathname === '/admin') {
-      pathname = '/admin.html';
-    }
-
-    const filePath = `./src/static${pathname}`;
-    const fileContent = await Deno.readFile(filePath);
-    return addCorsHeaders(new Response(fileContent, {
-      headers: {
-        'content-type': getContentType(pathname),
-      },
-    }));
-  } catch (error) {
-    console.error('Static file error:', error);
-    return addCorsHeaders(new Response('Not Found', { status: 404 }));
-  }
 }
 
 async function handleRequest(req: Request): Promise<Response> {
@@ -601,6 +625,11 @@ async function handleRequest(req: Request): Promise<Response> {
     }));
   }
 
+  // 兑换页面路由
+  if (url.pathname.startsWith("/key/redeem/")) {
+    return handleStaticFile("/redeem.html");
+  }
+
   // Gemini Key 管理相关的路由
   if (url.pathname.startsWith("/api/admin/gemini-keys")) {
     return handleGeminiKeyManagement(req);
@@ -611,8 +640,9 @@ async function handleRequest(req: Request): Promise<Response> {
     return handleKeyManagement(req);
   }
 
-  // 兑换码管理相关的路由
-  if (url.pathname.startsWith("/api/admin/redeem") || url.pathname === "/api/redeem") {
+  // 兑换码相关的路由
+  if (url.pathname.startsWith("/api/admin/redeem") || 
+      url.pathname.startsWith("/api/redeem/")) {
     return addCorsHeaders(await handleRedeemManagement(req));
   }
 
@@ -631,6 +661,31 @@ async function handleRequest(req: Request): Promise<Response> {
 
   // 静态文件处理
   return handleStaticFile(url.pathname);
+}
+
+async function handleStaticFile(pathname: string): Promise<Response> {
+  try {
+    // 如果请求的是根路径，返回 index.html
+    if (pathname === '/') {
+      pathname = '/index.html';
+    }
+    
+    // 如果请求的是 /admin，返回 admin.html
+    if (pathname === '/admin') {
+      pathname = '/admin.html';
+    }
+
+    const filePath = `./src/static${pathname}`;
+    const fileContent = await Deno.readFile(filePath);
+    return addCorsHeaders(new Response(fileContent, {
+      headers: {
+        'content-type': getContentType(pathname),
+      },
+    }));
+  } catch (error) {
+    console.error('Static file error:', error);
+    return addCorsHeaders(new Response('Not Found', { status: 404 }));
+  }
 }
 
 Deno.serve(handleRequest); 

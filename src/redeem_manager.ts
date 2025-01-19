@@ -59,7 +59,6 @@ export class RedeemManager {
 
     // 获取兑换码信息
     async getRedeemCodeInfo(batchId: string, code: string): Promise<RedeemCodeInfo | null> {
-        console.log("[RedeemManager] Getting code info:", { batchId, code });
         const result = await this.kv.get<RedeemCodeInfo>([CODE_PREFIX, batchId, code]);
         return result.value;
     }
