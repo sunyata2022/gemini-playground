@@ -15,6 +15,13 @@ export class GeminiKeysPage {
         
         this.bindEvents();
         this.initializeSearch();
+        
+        // 监听tab切换事件
+        document.addEventListener('tab:changed', (e) => {
+            if (e.detail.tabId === 'gemini') {
+                this.loadKeys();
+            }
+        });
     }
 
     bindEvents() {
@@ -426,6 +433,5 @@ export class GeminiKeysPage {
 // Export a function to initialize the page
 export function initGeminiKeysPage() {
     const page = new GeminiKeysPage();
-    page.loadKeys();
     return page;
 }

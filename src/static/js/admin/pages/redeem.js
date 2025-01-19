@@ -16,6 +16,13 @@ export class RedeemPage {
         
         this.bindEvents();
         this.initializeSearch();
+        
+        // 监听tab切换事件
+        document.addEventListener('tab:changed', (e) => {
+            if (e.detail.tabId === 'settings') {
+                this.loadBatches();
+            }
+        });
     }
 
     bindEvents() {
@@ -300,6 +307,5 @@ export class RedeemPage {
 // Export a function to initialize the page
 export function initRedeemPage() {
     const page = new RedeemPage();
-    page.loadBatches();
     return page;
 }

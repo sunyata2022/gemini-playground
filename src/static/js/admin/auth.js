@@ -25,9 +25,35 @@ export async function initAuth() {
     // Check if already logged in
     const token = sessionStorage.getItem('adminToken');
     if (token) {
-        return verifyStoredToken();
+        return await verifyStoredToken();
     } else {
         showAuthDialog();
+        // 等待用户验证完成
+        return new Promise((resolve) => {
+            const handleAuth = async () => {
+                const result = await authenticate();
+                if (result) {
+                    // 移除事件监听器，避免内存泄漏
+                    confirmAuth.removeEventListener('click', handleAuth);
+                    adminToken.removeEventListener('keypress', handleKeyPress);
+                    resolve(true);
+                }
+            };
+            
+            const handleKeyPress = async (e) => {
+                if (e.key === 'Enter') {
+                    const result = await authenticate();
+                    if (result) {
+                        confirmAuth.removeEventListener('click', handleAuth);
+                        adminToken.removeEventListener('keypress', handleKeyPress);
+                        resolve(true);
+                    }
+                }
+            };
+
+            confirmAuth.addEventListener('click', handleAuth);
+            adminToken.addEventListener('keypress', handleKeyPress);
+        });
     }
 }
 

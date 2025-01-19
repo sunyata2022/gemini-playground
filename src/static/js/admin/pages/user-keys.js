@@ -15,6 +15,13 @@ export class UserKeysPage {
         
         this.bindEvents();
         this.initializeSearch();
+        
+        // 监听tab切换事件
+        document.addEventListener('tab:changed', (e) => {
+            if (e.detail.tabId === 'keys') {
+                this.loadKeys();
+            }
+        });
     }
 
     bindEvents() {
@@ -415,6 +422,5 @@ export class UserKeysPage {
 // Export a function to initialize the page
 export function initUserKeysPage() {
     const page = new UserKeysPage();
-    page.loadKeys();
     return page;
 }

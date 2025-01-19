@@ -8,20 +8,22 @@ import { initRedeemPage } from './admin/pages/redeem.js';
 // Initialize the application
 async function initializeApp() {
     try {
-        // Initialize authentication
-        await initAuth();
+        // Initialize authentication first
+        const authResult = await initAuth();
         
-        // Show main content after auth
-        document.getElementById('mainContent').style.display = 'block';
-        
-        // Initialize tabs
-        initTabs();
-        
-        // Initialize all pages
-        initUserKeysPage();
-        initGeminiKeysPage();
-        initRedeemPage();
-        
+        // Only proceed if authentication is successful
+        if (authResult) {
+            // Show main content after auth
+            document.getElementById('mainContent').style.display = 'block';
+            
+            // Initialize all pages first (so they can set up their event listeners)
+            initUserKeysPage();
+            initGeminiKeysPage();
+            initRedeemPage();
+            
+            // Initialize tabs last (which will trigger the initial tab load)
+            initTabs();
+        }
     } catch (error) {
         console.error('Failed to initialize app:', error);
     }
