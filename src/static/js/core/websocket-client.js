@@ -65,6 +65,7 @@ export class MultimodalLiveClient extends EventEmitter {
             ]
         };
         const ws = new WebSocket(`${this.baseUrl}?key=${apiKey}`);
+        console.log(`${this.baseUrl}?key=${apiKey}`);
 
         ws.addEventListener('message', async (evt) => {
             if (evt.data instanceof Blob) {

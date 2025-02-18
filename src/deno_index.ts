@@ -86,11 +86,15 @@ async function handleAPIRequest(req: Request): Promise<Response> {
 
 async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  console.log('Request URL:', req.url);
 
   // WebSocket 处理
   if (req.headers.get("Upgrade")?.toLowerCase() === "websocket") {
-    return handleWebSocket(req);
+    return new Response('Not Found', { 
+      status: 404,
+      headers: {
+        'content-type': 'text/plain;charset=UTF-8',
+      }
+    });
   }
 
   if (url.pathname.endsWith("/chat/completions") ||
@@ -99,32 +103,39 @@ async function handleRequest(req: Request): Promise<Response> {
     return handleAPIRequest(req);
   }
 
-  // 静态文件处理
-  try {
-    let filePath = url.pathname;
-    if (filePath === '/' || filePath === '/index.html') {
-      filePath = '/index.html';
+  return new Response('Not Found', { 
+    status: 404,
+    headers: {
+      'content-type': 'text/plain;charset=UTF-8',
     }
+  });
 
-    const fullPath = `${Deno.cwd()}/src/static${filePath}`;
+  // 静态文件处理
+  // try {
+  //   let filePath = url.pathname;
+  //   if (filePath === '/' || filePath === '/index.html') {
+  //     filePath = '/index.html';
+  //   }
 
-    const file = await Deno.readFile(fullPath);
-    const contentType = getContentType(filePath);
+  //   const fullPath = `${Deno.cwd()}/src/static${filePath}`;
 
-    return new Response(file, {
-      headers: {
-        'content-type': `${contentType};charset=UTF-8`,
-      },
-    });
-  } catch (e) {
-    console.error('Error details:', e);
-    return new Response('Not Found', { 
-      status: 404,
-      headers: {
-        'content-type': 'text/plain;charset=UTF-8',
-      }
-    });
-  }
+  //   const file = await Deno.readFile(fullPath);
+  //   const contentType = getContentType(filePath);
+
+  //   return new Response(file, {
+  //     headers: {
+  //       'content-type': `${contentType};charset=UTF-8`,
+  //     },
+  //   });
+  // } catch (e) {
+  //   console.error('Error details:', e);
+  //   return new Response('Not Found', { 
+  //     status: 404,
+  //     headers: {
+  //       'content-type': 'text/plain;charset=UTF-8',
+  //     }
+  //   });
+  // }
 }
 
 Deno.serve(handleRequest); 

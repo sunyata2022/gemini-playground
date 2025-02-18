@@ -4,8 +4,42 @@
 
 import { Buffer } from "node:buffer";
 
+const systemApiKey = Deno.env.get("SYSTEM_API_KEY");
+const apiKeyString = Deno.env.get("GEMINI_API_KEYS") || "";
+const apiKeys = apiKeyString
+  .split(/[, ]+/) // 使用逗号或空格分隔
+  .map((key) => key.trim()) // 去除空白字符
+  .filter((key) => key !== ""); // 过滤掉空字符串
+
+// 2. 初始化密钥索引
+let apiKeyIndex = 0;
+
+// 3. 获取当前 API 密钥的函数
+function getCurrentApiKey() {
+  if (apiKeys.length === 0) {
+    return null; // 或者抛出错误： throw new Error("No API keys configured.");
+  }
+
+  const apiKey = apiKeys[apiKeyIndex];
+  apiKeyIndex = (apiKeyIndex + 1) % apiKeys.length; // 循环索引
+  return apiKey;
+}
+
 export default {
   async fetch (request) {
+    const authHeader = request.headers.get("Authorization");
+    const providedSystemKey = authHeader?.split(" ")[1];
+
+    if (!systemApiKey || providedSystemKey !== systemApiKey) {
+      return new Response("Unauthorized", { status: 401 }); // 或 status: 403
+    }
+
+    const apiKey = getCurrentApiKey();
+
+    if (!apiKey) {
+      return new Response("No API keys available.", { status: 500 });
+    }
+
     if (request.method === "OPTIONS") {
       return handleOPTIONS();
     }
@@ -14,8 +48,8 @@ export default {
       return new Response(err.message, fixCors({ status: err.status ?? 500 }));
     };
     try {
-      const auth = request.headers.get("Authorization");
-      const apiKey = auth?.split(" ")[1];
+      // const auth = request.headers.get("Authorization");
+      // const apiKey = auth?.split(" ")[1];
       const assert = (success) => {
         if (!success) {
           throw new HttpError("The specified HTTP method is not allowed for the requested resource", 400);
